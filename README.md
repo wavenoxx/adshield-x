@@ -1,10 +1,25 @@
 # AdShield-X
 
-![tests](https://github.com/USERNAME/adshield-x/actions/workflows/ci.yml/badge.svg)
+[![tests](https://github.com/wavenoxx/adshield-x/actions/workflows/ci.yml/badge.svg)](https://github.com/wavenoxx/adshield-x/actions/workflows/ci.yml)
+[![licence](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
-**Live explainer:** https://USERNAME.github.io/adshield-x/ · **Console:** deploy in one click (see below)
+### Try it
 
-> Replace `USERNAME` in this file with your GitHub user name after the first push.
+| | |
+|---|---|
+| **Live console** | **https://adshield-x.onrender.com** — sign in with `admin` / `admin` |
+| **Results page** | https://wavenoxx.github.io/adshield-x/ |
+
+The console runs the real trained model: upload a click log, generate a labelled
+sample, or type a single click into a form and watch the verdict move. It is on
+a free instance, so it sleeps after fifteen idle minutes and takes about a
+minute to wake — open it once before you need it.
+
+The results page is static and always instant. It runs a logistic surrogate
+distilled from the deployed forest, which agrees with the full model on 98.6% of
+test clicks, so it can score in the browser with no server behind it.
+
+---
 
 Ad click-fraud detection that measures the things a click-fraud paper usually
 doesn't: recall against a bot family nobody trained on, attack-success rate
@@ -24,10 +39,11 @@ tests the four assumptions that comparison rests on.
 |---|---|
 | **Source code** | this repository |
 | **Working demo** | the Flask application in `app/` — backend, database, web UI, JSON API |
-| **Research paper** | `AdShield-X_Research_Paper.docx` |
-| Presentation explainer | `AdShield-X_Demo.html` — a standalone page for *showing* the results in a talk. It is a supplement, not the demo. |
+| **Research paper** | `paper/AdShield-X_Research_Paper.docx` |
+| Speaker guide | `paper/AdShield-X_Explanation_Guide.docx` — how to present the work |
+| Results page | `docs/index.html` — a standalone page for *showing* the results in a talk. It is a supplement, not the demo. |
 
-The explainer is a single HTML file with the trained model distilled into a
+The results page is a single HTML file with the trained model distilled into a
 small in-page surrogate, so it opens anywhere with no server. Useful on a
 projector. The thing that is actually evaluated as the demo is the Flask app
 below, which loads the real model.
@@ -80,6 +96,7 @@ app/app.py              Flask routes: auth, scanning, history, reports, API
 app/db.py               SQLite schema and queries
 app/scoring.py          service layer between the web tier and the model
 app/templates/          nine Jinja templates
+paper/                  the research paper and the speaker guide
 app/static/             stylesheet
 tests/                  gradient checks and console end-to-end tests
 docs/                   the explainer, served by GitHub Pages
@@ -111,10 +128,9 @@ print('analytic',g,'numeric',(l1-l2)/(2*e))"
 
 Two things can be published, and they are published differently.
 
-**The explainer** is a static page — GitHub Pages serves it with no build step.
-In the repository, open Settings → Pages, set the source to `main` and the
-folder to `/docs`, and save. A minute later
-`https://USERNAME.github.io/adshield-x/` is live. This is the page to open on a
+**The results page** is static — GitHub Pages serves it with no build step.
+Settings → Pages, source `main`, folder `/docs`, save. A minute later
+https://wavenoxx.github.io/adshield-x/ is live. This is the page to open on a
 projector.
 
 **The console** is a Flask app that loads a 7.5 MB model, so it needs a real
@@ -122,12 +138,13 @@ host. Three that work:
 
 | Host | How |
 |---|---|
-| Render | Import the repo; `render.yaml` is already here, so it configures itself. Free tier sleeps after 15 minutes of no traffic and takes ~40 s to wake. |
+| Render | What this deployment uses. Render detects the `Dockerfile` and builds from it; `render.yaml` is here too if you prefer the native Python runtime. Free tier sleeps after 15 idle minutes and takes about a minute to wake, because the model loads on the first request. |
 | Hugging Face Spaces | Create a Space with the Docker SDK and push this repo. `Dockerfile` already listens on 7860, which is what Spaces expects. |
 | Railway / Fly.io | Both read the `Dockerfile` directly. |
 
-The console also serves the explainer at `/explainer`, so a single deployment
-covers both if you would rather hand out one link.
+The console also serves the results page at
+[`/explainer`](https://adshield-x.onrender.com/explainer), so a single
+deployment covers both if you would rather hand out one link.
 
 ### Why not a serverless platform
 
@@ -142,9 +159,13 @@ host those tables silently reset between requests and half the console stops
 meaning anything. A container platform keeps one process, one disk and one
 loaded model, which is what this workload wants.
 
-Set `ADSHIELD_SECRET` to a random string in the host's environment settings.
-Without it a fresh key is generated per process, which logs everyone out on
-every restart.
+Two environment variables matter:
+
+| Variable | Why |
+|---|---|
+| `ADSHIELD_SECRET` | Session key. Without it a fresh one is generated per process, which signs everyone out on every restart. |
+| `ADSHIELD_REASON_LIMIT` | How many clicks per batch get a SHAP explanation. Default 60; this deployment uses 25 because a free instance gets 0.1 CPU. |
+| `ADSHIELD_CPC` | Cost per click used for the money column. Default ₹18. |
 
 Measured on one core, the console peaks at about 365 MB resident and answers a
 500-click scan in roughly 5 s, so it fits a 512 MB free instance. Shared-CPU
@@ -196,11 +217,11 @@ evidence.
 | `/audit` | activity log, admin accounts only |
 
 **JSON API.** `GET /api/v1/health` needs no key. `GET /api/v1/model` and
-`POST /api/v1/score` take an `X-API-Key` header. Scores up to 5,000 clicks per
+`POST /api/v1/score` take an `X-API-Key` header. Scores up to 2,000 clicks per
 request, stores the job, and returns per-click verdicts with reason codes:
 
 ```bash
-curl -X POST http://127.0.0.1:5000/api/v1/score \
+curl -X POST https://adshield-x.onrender.com/api/v1/score \
   -H "X-API-Key: <your key from /model>" \
   -H "Content-Type: application/json" \
   -d '{"clicks":[{"session_duration":6,"mouse_move_events":0,
@@ -217,7 +238,7 @@ a dedicated core and several times that on a shared one, so explaining a whole
 batch would blow any sensible request budget. The console ranks each batch by
 how much the decision needs defending — escalated first, then blocked, then
 whatever else is riskiest — and explains the top `ADSHIELD_REASON_LIMIT` clicks,
-60 by default. The clean tail is scored but not explained, which is also the
+60 by default and 25 on the deployed free instance. The clean tail is scored but not explained, which is also the
 right operational answer: you justify what you block.
 
 **What is deliberately not here.** No password reset, no rate limiting, no TLS
