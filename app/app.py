@@ -58,6 +58,17 @@ def create_app():
         def wrapper(*a, **kw):
             if not session.get("uid"):
                 return redirect(url_for("signin", next=request.path))
+            if current_user() is None:
+                # The session cookie outlived the row it points at. On a free
+                # host the disk is wiped on every redeploy, so the database is
+                # rebuilt and seeded from scratch while the browser still holds
+                # a signed cookie naming an account id that no longer exists.
+                # Letting that through means every write fails on a foreign key
+                # deep inside the request; catching it here is the honest place.
+                session.clear()
+                flash("That session pointed at an account that no longer exists "
+                      "— the database was rebuilt. Sign in again.")
+                return redirect(url_for("signin"))
             return fn(*a, **kw)
         return wrapper
 

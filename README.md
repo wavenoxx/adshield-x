@@ -177,6 +177,13 @@ filesystem, so `outputs/adshield.db` is wiped on redeploy and scan history
 resets. That is fine for a demonstration. Mount a volume and point
 `ADSHIELD_DB` at it if history has to survive.
 
+A session cookie can outlive the row it points at, because the cookie is signed
+with `ADSHIELD_SECRET` and survives the restart while the database does not.
+`login_required` therefore checks that the account still exists rather than only
+that the cookie carries an id; without that check the first write of the next
+request fails on a foreign key somewhere deep in the call stack, which is a poor
+way to tell someone to sign in again.
+
 ## Tests
 
 ```bash
