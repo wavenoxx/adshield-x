@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}AdShield-X{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='console.css') }}">
+</head><body>
+<header><div class="wrap">
+  <a class="brand" href="{{ url_for('dashboard') if user else url_for('signin') }}">AdShield<span>-X</span></a>
+  {% if user %}
+  <nav>
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('scan') }}">New scan</a>
+    <a href="{{ url_for('history') }}">History</a>
+    <a href="{{ url_for('model') }}">Model</a>
+    <a href="{{ url_for('explainer') }}">Results</a>
+    {% if user['role'] == 'admin' %}<a href="{{ url_for('audit_log') }}">Activity</a>{% endif %}
+    <a href="{{ url_for('signout') }}">Sign out ({{ user['username'] }})</a>
+  </nav>
+  {% endif %}
+</div></header>
+<main class="wrap">
+  {% with msgs = get_flashed_messages() %}
+    {% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block body %}{% endblock %}
+</main>
+<footer><div class="wrap">Research prototype. Verdicts are stored with the reason codes
+  and threshold in force when they were made.</div></footer>
+</body></html>

@@ -1,0 +1,45 @@
+{% extends "base.html" %}{% block title %}Scan {{ scan['id'] }} — AdShield-X{% endblock %}
+{% block body %}
+<h1>Scan {{ scan['id'] }}</h1>
+<p class="note">{{ scan['label'] }} · {{ scan['created_at'][:19].replace('T',' ') }} UTC
+  · decision threshold {{ scan['threshold'] }}</p>
+
+<div class="cards">
+  <div class="stat"><span class="n mono">{{ scan['n_clicks'] }}</span>
+    <div class="k">clicks scanned</div></div>
+  <div class="stat"><span class="n mono" style="color:var(--fraud)">{{ scan['n_blocked'] }}</span>
+    <div class="k">blocked as invalid</div></div>
+  <div class="stat"><span class="n mono" style="color:var(--clean)">₹{{ '{:,.2f}'.format(scan['budget_held']) }}</span>
+    <div class="k">budget held back at ₹{{ scan['cpc'] }} per click</div></div>
+  {% if scan['n_correct'] is not none %}
+  <div class="stat"><span class="n mono">{{ scan['n_correct'] }}/{{ scan['n_clicks'] }}</span>
+    <div class="k">agree with ground truth</div></div>
+  {% endif %}
+</div>
+
+{% if scan['n_escalated'] %}
+<div class="escalated">{{ scan['n_escalated'] }} click{{ '' if scan['n_escalated'] == 1 else 's' }}
+  reached the threshold only through the novelty head. The supervised model would
+  have let {{ 'it' if scan['n_escalated'] == 1 else 'them' }} through and billed the advertiser.</div>
+{% endif %}
+
+<div class="panel">
+  <div class="rowhead"><h2>Verdicts</h2>
+    <a class="btnlink" href="{{ url_for('scan_csv', scan_id=scan['id']) }}">Download as CSV</a></div>
+  <div class="scroller"><table>
+    <thead><tr><th class="n">#</th><th class="n">Fraud risk</th><th>Decision</th>
+      {% if recs and recs[0].truth %}<th>Ground truth</th>{% endif %}
+      <th>Why</th></tr></thead>
+    <tbody>{% for r in recs %}
+      <tr class="{{ 'esc' if r.escalated else '' }}">
+        <td class="n">{{ r.row_no }}</td>
+        <td class="n">{{ r.probability }}%
+          {% if r.escalated %}<span class="why">supervised said {{ r.supervised }}%</span>{% endif %}</td>
+        <td><span class="tag {{ 'f' if r.blocked else 'c' }}">{{ 'Invalid click' if r.blocked else 'Legitimate' }}</span>
+          {% if r.escalated %}<span class="why">escalated by the novelty head</span>{% endif %}</td>
+        {% if r.truth %}<td>{{ r.truth }}</td>{% endif %}
+        <td>{% for x in r.reasons[:3] %}{{ x.signal }}<span class="why">{{ x.explanation }}</span>{% endfor %}</td>
+      </tr>
+    {% endfor %}</tbody></table></div>
+</div>
+{% endblock %}

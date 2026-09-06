@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block title %}Create an account — AdShield-X{% endblock %}
+{% block body %}
+<div class="panel narrow">
+  <h1>Create an account</h1>
+  <p class="note">Analyst accounts see only their own scans.</p>
+  <form method="post">
+    <div class="field"><label for="u">User name</label>
+      <input id="u" name="username" required autofocus></div>
+    <div class="field"><label for="p">Password</label>
+      <input id="p" type="password" name="password" required></div>
+    <button type="submit">Create the account</button>
+    <a class="quiet" href="{{ url_for('signin') }}">Back to sign in</a>
+  </form>
+</div>
+{% endblock %}

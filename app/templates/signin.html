@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Sign in — AdShield-X{% endblock %}
+{% block body %}
+<div class="panel narrow">
+  <h1>Sign in</h1>
+  <p class="note">Traffic-quality console. A demo account is seeded on first run:
+    admin / admin.</p>
+  <form method="post">
+    <div class="field"><label for="u">User name</label>
+      <input id="u" name="username" autocomplete="username" required autofocus></div>
+    <div class="field"><label for="p">Password</label>
+      <input id="p" type="password" name="password" autocomplete="current-password" required></div>
+    <button type="submit">Sign in</button>
+    <a class="quiet" href="{{ url_for('register') }}">Create an account</a>
+  </form>
+</div>
+{% endblock %}

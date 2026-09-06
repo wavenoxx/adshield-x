@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% block title %}Model — AdShield-X{% endblock %}
+{% block body %}
+<h1>What is deployed</h1>
+{% if err %}<div class="flash">{{ err }}</div>{% else %}
+<div class="panel">
+  <table class="kv">
+    <tr><th>Supervised head</th><td>{{ card.supervised_model }}</td></tr>
+    <tr><th>Novelty head</th><td>{{ card.novelty_head }}</td></tr>
+    <tr><th>Decision threshold</th><td class="mono">{{ card.threshold }}
+      <span class="why">chosen by expected loss, not accuracy</span></td></tr>
+    <tr><th>Cost per click</th><td class="mono">₹{{ card.cpc }}</td></tr>
+    <tr><th>Features used</th><td class="mono">{{ card.features_used }}</td></tr>
+  </table>
+  <p class="note" style="margin-top:14px">{{ card.feature_names|join(' · ') }}</p>
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>JSON API</h2>
+  <p class="note">Your API key. Treat it like a password.</p>
+  <p class="mono keybox">{{ api_key }}</p>
+  <pre class="code">curl -X POST http://127.0.0.1:5000/api/v1/score \
+  -H "X-API-Key: {{ api_key }}" \
+  -H "Content-Type: application/json" \
+  -d '{"clicks": [{"session_duration": 12, "mouse_move_events": 0,
+       "scroll_depth_pct": 2, "avg_click_interval_ms": 600,
+       "click_interval_std_ms": 12, "ua_entropy": 2.9,
+       "ip_clicks_1h": 34, "browser": "HeadlessChrome",
+       "os": "Linux", "device_type": "desktop"}]}'</pre>
+  <p class="note">Also available: <span class="mono">GET /api/v1/health</span> (no key)
+    and <span class="mono">GET /api/v1/model</span>. Missing columns are imputed,
+    so a partial click record still scores.</p>
+</div>
+{% endblock %}

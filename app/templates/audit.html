@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}Activity — AdShield-X{% endblock %}
+{% block body %}
+<h1>Activity</h1>
+<p class="note">Append-only log. Visible to admin accounts.</p>
+<div class="panel"><div class="scroller"><table>
+  <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Detail</th></tr></thead>
+  <tbody>{% for r in rows %}
+    <tr><td class="mono small">{{ r['created_at'][:19].replace('T',' ') }}</td>
+      <td>{{ r['username'] or '—' }}</td><td>{{ r['action'] }}</td>
+      <td class="small">{{ r['detail'] }}</td></tr>
+  {% endfor %}</tbody></table></div></div>
+{% endblock %}

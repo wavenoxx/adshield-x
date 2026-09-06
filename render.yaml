@@ -1,0 +1,15 @@
+# One-click deploy config for Render. Import the repo and Render reads this.
+services:
+  - type: web
+    name: adshield-x
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 "app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: ADSHIELD_SECRET
+        generateValue: true
+      - key: ADSHIELD_CPC
+        value: "18.0"

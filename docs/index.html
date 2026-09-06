@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AdShield-X — click inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9EEF2; --card:#FFFFFF; --ink:#16212B; --muted:#5C6E7C;
+  --rule:#C9D4DC; --soft:#F3F7F9;
+  --fraud:#9E2B25; --clean:#1D6B4F; --watch:#A66A11; --accent:#23566E;
+  --fraud-bg:#F7E8E7; --clean-bg:#E4F0EA; --watch-bg:#F8EFDF;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.55;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-variant-numeric:tabular-nums;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.015em}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.1}
+h2{font-size:clamp(21px,2.6vw,27px);line-height:1.2}
+h3{font-size:17px}
+p{margin:0 0 1em}
+a{color:var(--accent)}
+
+/* ---------- masthead ---------- */
+header{background:var(--ink);color:#E6EDF2;padding:26px 0 30px}
+header .wrap{display:flex;flex-wrap:wrap;gap:18px;align-items:baseline;
+  justify-content:space-between}
+.brand{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.brand span{color:#8FB3C4;font-weight:400}
+.sub{color:#9DB3C1;font-size:14.5px;max-width:56ch}
+
+/* ---------- inspector ---------- */
+.inspector{margin:-18px 0 0;padding-bottom:56px}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:3px}
+.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+
+.controls{padding:22px}
+.controls h2{margin-bottom:4px}
+.hint{color:var(--muted);font-size:14px;margin-bottom:18px}
+.replay{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+.chip{border:1px solid var(--rule);background:var(--soft);color:var(--ink);
+  padding:6px 11px;border-radius:2px;font-size:13.5px;cursor:pointer;
+  font-family:inherit;transition:background .12s,border-color .12s}
+.chip:hover{background:#E7EEF2}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.slider{margin-bottom:15px}
+.slider label{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:14px;gap:12px;margin-bottom:5px}
+.slider .val{font-size:13.5px;color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+
+/* ---------- verdict ---------- */
+.verdict{padding:22px;position:sticky;top:16px}
+.stamp{display:inline-block;padding:5px 12px;border-radius:2px;font-size:13px;
+  font-weight:600;margin-bottom:14px}
+.stamp.f{background:var(--fraud-bg);color:var(--fraud)}
+.stamp.c{background:var(--clean-bg);color:var(--clean)}
+.stamp.w{background:var(--watch-bg);color:var(--watch)}
+.score{font-size:clamp(46px,9vw,68px);line-height:.95;font-weight:600;
+  letter-spacing:-.03em}
+.score small{font-size:.34em;font-weight:400;color:var(--muted);
+  letter-spacing:0;margin-left:6px}
+.meter{height:7px;background:var(--soft);border:1px solid var(--rule);
+  margin:14px 0 6px;position:relative;border-radius:2px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);transition:width .18s}
+.meter u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.meterkey{display:flex;justify-content:space-between;font-size:12px;
+  color:var(--muted);margin-bottom:18px}
+
+.money{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:13px 0;margin-bottom:18px;font-size:14.5px;display:flex;
+  justify-content:space-between;gap:12px}
+.money b{font-weight:600}
+
+.reasons{list-style:none;margin:0;padding:0}
+.reasons li{display:grid;grid-template-columns:1fr auto;gap:10px;
+  padding:9px 0;border-bottom:1px solid var(--rule);font-size:14.5px}
+.reasons li:last-child{border-bottom:0}
+.reasons .why{color:var(--muted);font-size:13.5px;display:block}
+.bar{width:74px;height:9px;background:var(--soft);border:1px solid var(--rule);
+  align-self:center;position:relative}
+.bar i{position:absolute;top:0;bottom:0;left:50%;background:var(--fraud)}
+.bar i.neg{background:var(--clean)}
+
+.escalated{background:var(--watch-bg);border:1px solid #E2C48D;padding:11px 13px;
+  font-size:13.5px;margin-bottom:16px;border-radius:2px}
+
+/* ---------- evidence ---------- */
+section{padding:44px 0;border-top:1px solid var(--rule)}
+section .lede{color:var(--muted);max-width:64ch;margin-bottom:26px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:16px}
+.stat{background:var(--card);border:1px solid var(--rule);padding:18px;border-radius:3px}
+.stat .n{font-size:31px;font-weight:600;letter-spacing:-.02em;display:block;
+  line-height:1.15}
+.stat .k{font-size:14px;color:var(--muted);margin-top:5px}
+.stat .d{font-size:13.5px;margin-top:9px;padding-top:9px;
+  border-top:1px solid var(--rule);color:var(--muted)}
+
+table{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--card)}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--rule)}
+th{font-weight:600;font-size:13.5px;color:var(--muted);background:var(--soft)}
+td.n,th.n{text-align:right;font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums}
+tr.best td{background:#EEF4F7}
+.scroller{overflow-x:auto;border:1px solid var(--rule);border-radius:3px}
+figure{margin:0 0 8px}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
+svg{display:block;width:100%;height:auto}
+.note{font-size:13.5px;color:var(--muted);max-width:66ch}
+footer{background:var(--ink);color:#9DB3C1;padding:26px 0;font-size:13.5px}
+footer a{color:#B9D3E0}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div>
+      <div class="brand">AdShield<span>-X</span></div>
+      <div class="sub">Click-fraud detection with entity-graph velocity features,
+        a zero-day novelty head, and a revenue-aware decision threshold.</div>
+    </div>
+    <div class="sub mono" id="hdrstat"></div>
+  </div>
+</header>
+
+<div class="wrap inspector">
+  <div class="grid">
+    <div class="panel controls">
+      <h2>Inspect a click</h2>
+      <p class="hint">Load a recorded click from the held-out test set, then move
+        the sliders to see how the detector responds.</p>
+      <div class="replay" id="replay"></div>
+
+      <div id="sliders"></div>
+      <p class="note" id="rawline"></p>
+    </div>
+
+    <div class="panel verdict">
+      <div id="stamp" class="stamp c">Legitimate</div>
+      <div class="score mono"><span id="pct">0.0</span><small>% fraud risk</small></div>
+
+      <div class="meter"><i id="fill" style="width:0%"></i><u id="mark"></u></div>
+      <div class="meterkey"><span>0</span>
+        <span id="thrlabel" class="mono"></span><span>100</span></div>
+
+      <div id="escbox"></div>
+
+      <div class="money">
+        <span id="moneylabel">Charge allowed</span>
+        <b class="mono" id="moneyval">₹18.00</b>
+      </div>
+
+      <h3>Why</h3>
+      <ul class="reasons" id="reasons"></ul>
+    </div>
+  </div>
+</div>
+
+
+<section id="arch">
+  <div class="wrap">
+    <h2>How a click gets judged</h2>
+    <p class="lede">Numbered blocks are what this work adds; the white blocks are
+      the pipeline every click-fraud paper already has. Read it left to right,
+      then follow the two dashed paths: red is what a fraud operator can reach,
+      green is the loop that keeps the model current.</p>
+    <div class="panel" style="padding:18px" id="archbox"><svg viewBox="0 0 980 600" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="AdShield-X pipeline architecture">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#5C6E7C"/></marker>
+    <marker id="arA" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#9E2B25"/></marker>
+    <marker id="arG" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#1D6B4F"/></marker>
+    <style>
+      .b{fill:#FFFFFF;stroke:#C9D4DC;stroke-width:1.2}
+      .bs{fill:#F3F7F9;stroke:#C9D4DC;stroke-width:1.2}
+      .bk{fill:#EAF0F4;stroke:#23566E;stroke-width:1.6}
+      .t{font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:12.5px;fill:#16212B}
+      .tb{font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:13px;
+          font-weight:600;fill:#16212B}
+      .ts{font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:11px;fill:#5C6E7C}
+      .tm{font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:#23566E}
+      .ln{stroke:#5C6E7C;stroke-width:1.4;fill:none;marker-end:url(#ar)}
+      .lnA{stroke:#9E2B25;stroke-width:1.4;fill:none;marker-end:url(#arA);stroke-dasharray:5 3}
+      .lnG{stroke:#1D6B4F;stroke-width:1.4;fill:none;marker-end:url(#arG);stroke-dasharray:5 3}
+    </style>
+  </defs>
+
+  <text class="ts" x="16" y="26" font-size="12">Numbered blocks are the five contributions. White blocks are the standard pipeline.</text>
+
+  <!-- ingest -->
+  <rect class="bs" x="16" y="128" width="112" height="70" rx="3"/>
+  <text class="tb" x="29" y="153">Click stream</text>
+  <text class="ts" x="29" y="171">ip · device ·</text>
+  <text class="ts" x="29" y="186">publisher · time</text>
+
+  <!-- EVGF -->
+  <rect class="bk" x="158" y="112" width="148" height="102" rx="3"/>
+  <text class="tb" x="171" y="136">1 · EVGF</text>
+  <text class="ts" x="171" y="154">backward-window</text>
+  <text class="ts" x="171" y="169">counters over the</text>
+  <text class="ts" x="171" y="184">ip–device–publisher</text>
+  <text class="ts" x="171" y="199">graph</text>
+  <text class="tm" x="171" y="211">10 features · O(1)</text>
+  <line class="ln" x1="128" y1="163" x2="154" y2="163"/>
+
+  <!-- preprocess -->
+  <rect class="bs" x="336" y="128" width="126" height="70" rx="3"/>
+  <text class="tb" x="349" y="152">Encode · impute</text>
+  <text class="ts" x="349" y="170">scale, then RFE</text>
+  <text class="tm" x="349" y="188">35 → 18 features</text>
+  <line class="ln" x1="306" y1="163" x2="332" y2="163"/>
+
+  <line class="ln" x1="462" y1="152" x2="534" y2="96"/>
+  <line class="ln" x1="462" y1="176" x2="534" y2="242"/>
+
+  <!-- supervised head -->
+  <rect class="b" x="538" y="56" width="180" height="76" rx="3"/>
+  <text class="tb" x="551" y="80">Supervised head</text>
+  <text class="ts" x="551" y="98">gradient-boosted trees</text>
+  <text class="tm" x="551" y="117">P(fraud | x)</text>
+
+  <!-- novelty head -->
+  <rect class="bk" x="538" y="204" width="180" height="90" rx="3"/>
+  <text class="tb" x="551" y="228">2 · Novelty head</text>
+  <text class="ts" x="551" y="246">quantile transform, then an</text>
+  <text class="ts" x="551" y="261">autoencoder fitted only on</text>
+  <text class="ts" x="551" y="276">legitimate clicks</text>
+  <text class="tm" x="551" y="290">sees all 35 features</text>
+
+  <!-- cascade gate -->
+  <rect class="b" x="752" y="128" width="196" height="94" rx="3"/>
+  <text class="tb" x="765" y="152">Cascade gate</text>
+  <text class="ts" x="765" y="170">escalate when p &lt; 0.55 and</text>
+  <text class="ts" x="765" y="185">the click reconstructs badly</text>
+  <text class="ts" x="765" y="200">under legitimate behaviour</text>
+  <text class="tm" x="765" y="215">β = 3% false-positive budget</text>
+  <line class="ln" x1="718" y1="94" x2="748" y2="154"/>
+  <line class="ln" x1="718" y1="248" x2="748" y2="198"/>
+
+  <!-- cost cut -->
+  <rect class="bk" x="538" y="326" width="210" height="86" rx="3"/>
+  <text class="tb" x="551" y="350">4 · Cost-optimal cut</text>
+  <text class="ts" x="551" y="368">minimise FP·c_FP + FN·c_FN</text>
+  <text class="ts" x="551" y="383">from the click price and the</text>
+  <text class="ts" x="551" y="398">cost of blocking a customer</text>
+  <path class="ln" d="M850 222 L850 292 L740 292 L740 322"/>
+
+  <!-- decisions -->
+  <rect class="b" x="786" y="326" width="162" height="38" rx="3" fill="#F7E8E7" stroke="#9E2B25"/>
+  <text class="tb" x="799" y="350" fill="#9E2B25">Block, do not bill</text>
+  <rect class="b" x="786" y="374" width="162" height="38" rx="3" fill="#E4F0EA" stroke="#1D6B4F"/>
+  <text class="tb" x="799" y="398" fill="#1D6B4F">Allow the charge</text>
+  <line class="ln" x1="748" y1="356" x2="782" y2="348"/>
+  <line class="ln" x1="748" y1="382" x2="782" y2="392"/>
+
+  <!-- reason codes -->
+  <rect class="b" x="296" y="452" width="180" height="86" rx="3"/>
+  <text class="tb" x="309" y="476">6 · Reason codes</text>
+  <text class="ts" x="309" y="494">SHAP contributions in</text>
+  <text class="ts" x="309" y="509">plain language, so the</text>
+  <text class="ts" x="309" y="524">charge can be disputed</text>
+  <path class="ln" d="M556 416 L520 448 L482 462"/>
+
+  <!-- adversary -->
+  <rect class="b" x="16" y="452" width="252" height="118" rx="3" stroke="#9E2B25"/>
+  <text class="tb" x="29" y="476" fill="#9E2B25">3 · Adaptive adversary</text>
+  <text class="ts" x="29" y="494">replays captured human sessions into</text>
+  <text class="ts" x="29" y="509">the columns it owns: pointer, scroll,</text>
+  <text class="ts" x="29" y="524">dwell, cadence, user agent, device</text>
+  <text class="ts" x="29" y="546">server-side counters stay out of reach</text>
+  <text class="ts" x="29" y="561">unless it also cuts its own revenue</text>
+  <path class="lnA" d="M262 448 L340 300 L392 204"/>
+  <text class="tm" x="352" y="286" fill="#9E2B25">forgeable</text>
+  <path stroke="#9E2B25" stroke-width="1.4" fill="none" stroke-dasharray="5 3"
+        d="M150 452 L150 300 L196 220"/>
+  <g stroke="#9E2B25" stroke-width="2">
+    <line x1="164" y1="316" x2="180" y2="332"/><line x1="180" y1="316" x2="164" y2="332"/>
+  </g>
+  <text class="tm" x="60" y="330" fill="#9E2B25">out of reach</text>
+
+  <!-- drift -->
+  <rect class="bk" x="538" y="452" width="410" height="86" rx="3"/>
+  <text class="tb" x="551" y="476">5 · Drift monitor</text>
+  <text class="ts" x="551" y="494">two-window change detector on the streaming error signal;</text>
+  <text class="ts" x="551" y="509">on a Hoeffding-bounded change the model refits on recent traffic</text>
+  <text class="tm" x="551" y="527">retrains when the adversary moves, not on a schedule</text>
+  <path class="lnG" d="M866 412 L866 448"/>
+  <path class="lnG" d="M538 494 L502 494 L502 94 L534 94"/>
+  <text class="tm" x="470" y="452" fill="#1D6B4F" text-anchor="end">refit</text>
+</svg></div>
+  </div>
+</section>
+
+<section id="ledger">
+  <div class="wrap">
+    <h2>Scoring a batch</h2>
+    <p class="lede">Every recorded click above, scored in one pass at the
+      cost-optimal threshold. The last four rows are a bot family the supervised
+      model never saw in training.</p>
+    <div class="scroller"><table id="ledgertab"></table></div>
+    <p class="note" style="margin-top:12px" id="ledgersum"></p>
+  </div>
+</section>
+
+<section id="ablation">
+  <div class="wrap">
+    <h2>What the graph features buy</h2>
+    <p class="lede">Same classifier, three feature sets. Behavioural signals come
+      from the browser and a fraudster controls all of them. Network signals and
+      the entity-velocity graph come from the ad server's own counters.</p>
+    <div class="cards" id="ablcards"></div>
+    <figure style="margin-top:24px"><div id="ablchart"></div>
+      <figcaption>False-positive rate falls by two thirds when the entity graph
+        is added, which matters more than the accuracy gain: a false positive is
+        a real customer blocked.</figcaption></figure>
+  </div>
+</section>
+
+<section id="zeroday">
+  <div class="wrap">
+    <h2>A bot family nobody trained on</h2>
+    <p class="lede">The held-out family is a residential-proxy click farm. Every
+      one of its marginal distributions is drawn from real human traffic and its
+      IP velocity is unremarkable. What gives it away is the combination:
+      desktop sessions emitting touch events, minute-long visits that never
+      scroll, a user-agent string that never varies.</p>
+    <div class="cards" id="zdcards"></div>
+    <p class="note" style="margin-top:20px">The novelty head is a denoising
+      autoencoder trained only on legitimate clicks, so it models how real
+      signals move together rather than what past fraud looked like. Its gate is
+      calibrated to a fixed 3% false-positive budget on known-good traffic,
+      which is what keeps the in-distribution cost small.</p>
+  </div>
+</section>
+
+
+<section id="lofo">
+  <div class="wrap">
+    <h2>Every family takes a turn as the unknown</h2>
+    <p class="lede">Holding out one family answers a narrow question. Here each of
+      the four bot families is withheld in turn: the detector trains on legitimate
+      clicks plus the other three, with feature selection refitted inside every
+      fold, and is then measured on the withheld family alone.</p>
+    <div class="scroller"><table id="lofotab"></table></div>
+    <p class="note" style="margin-top:14px" id="lofonote"></p>
+  </div>
+</section>
+
+<section id="roc">
+  <div class="wrap">
+    <h2>Where the errors land</h2>
+    <p class="lede">An accuracy figure hides which of the two mistakes a model is
+      making. The curves separate models the summary table cannot, and the
+      matrices below show what each error costs in clicks.</p>
+    <div class="grid" style="grid-template-columns:1.15fr .85fr;gap:20px;align-items:start">
+      <figure><div id="rocchart"></div>
+        <figcaption>Detail of the top-left corner, where an operating point would
+          actually sit. The full curve is uninformative at this separability.</figcaption></figure>
+      <div id="cmbox"></div>
+    </div>
+  </div>
+</section>
+
+<section id="adv">
+  <div class="wrap">
+    <h2>When the bot fights back</h2>
+    <p class="lede">An adaptive operator captures real sessions and replays their
+      behavioural profile. The budget on the horizontal axis is how faithfully it
+      replays. Attack success is the share of true bots that get through.</p>
+    <figure><div id="advchart"></div>
+      <figcaption id="advcap"></figcaption></figure>
+  </div>
+</section>
+
+<section id="drift">
+  <div class="wrap">
+    <h2>Traffic that changes underneath you</h2>
+    <p class="lede">Four consecutive blocks of live traffic in which the bot
+      mixture shifts toward evasive families. One detector is frozen after
+      training; the other watches its own error stream and retrains when the
+      change exceeds a Hoeffding bound.</p>
+    <figure><div id="driftchart"></div>
+      <figcaption id="driftcap"></figcaption></figure>
+  </div>
+</section>
+
+<section id="cost">
+  <div class="wrap">
+    <h2>Choosing the threshold with money, not accuracy</h2>
+    <p class="lede">Blocking a real customer costs more than paying for one
+      fraudulent click, so the accuracy-optimal cut at 0.5 is the wrong one.
+      Sweeping the threshold against expected loss moves it and recovers real
+      budget.</p>
+    <figure><div id="costchart"></div>
+      <figcaption id="costcap"></figcaption></figure>
+    <div class="scroller" style="margin-top:22px"><table id="costtab"></table></div>
+  </div>
+</section>
+
+<section id="models">
+  <div class="wrap">
+    <h2>All fourteen models</h2>
+    <p class="lede">Reproduction of the baseline comparison on the same split,
+      with the graph features in place for every model.</p>
+    <div class="scroller"><table id="modeltab"></table></div>
+    <p class="note" style="margin-top:14px">Gradient-boosted trees lead. The
+      1-D convolutional models do not, and the reason is structural: a
+      convolution assumes neighbouring inputs are related, and column order in a
+      click record is arbitrary.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div id="foot"></div>
+  </div>
+</footer>
+
+<script id="payload" type="application/json">{"model":{"features":["session_duration","mouse_move_events","touch_events","avg_click_interval_ms","click_interval_std_ms","time_to_first_click_ms","ua_entropy","ip_clicks_1h","conversion_rate_pub","referrer","ip_click_velocity_1h","ip_unique_pub_24h","dev_click_velocity_1h","dev_unique_ip_24h","pub_click_velocity_1h","pub_unique_ip_ratio_24h","pub_ip_concentration","entity_degree_score"],"mean":[77.56731000682346,37.61085108651566,16.714279637585605,3414.6053253386876,2242.0565835950542,3165.1258797340947,4.015333836863213,7.148333333333333,0.0637545437815809,1.93475,4.246166666666666,2.766625,5.474333333333333,5.1771666666666665,297.4422916666667,0.9020876933339382,0.016712989983966167,2.0422434521100654],"scale":[132.40914406367204,65.54348263610619,20.89006324420543,5967.793208632485,4561.761980863722,6312.276048155494,0.6970515960634492,6.344518412684204,0.05311443328942462,1.5396944840346303,7.036226638302347,3.3547222104631853,10.270297361268995,9.417365801480203,294.23180572990674,0.14190948062905884,0.06202676421118127,1.8665937215891135],"coef":[-0.078115,-0.696726,-0.865817,0.181307,-0.22205,-0.153091,-0.094259,4.476102,-0.852226,-0.440382,-0.118995,-0.170423,-4.73058,4.844116,-0.011423,-0.528582,0.078503,0.947181],"intercept":-0.329228,"threshold":0.63,"surrogate_agreement":0.986,"novelty_cut":1.197146,"samples":[{"family":"human","label":"Human","x":[-0.1044,0.87559,-0.80011,-0.53725,-0.47842,-0.34718,0.80765,-0.49623,1.39739,0.69186,-0.60347,-0.8247,-0.53303,-0.54975,-0.50111,0.54903,-0.15767,-0.72276],"p_rf":0.0173,"raw":{"device_type":"desktop","browser":"Chrome","os":"Windows","session_duration":63.74338930972935,"mouse_move_events":95.0,"touch_events":0.0,"scroll_depth_pct":29.27044748507926,"keystrokes":5.0,"avg_click_interval_ms":208.41611043922717,"click_interval_std_ms":59.60804746590446,"ua_entropy":4.578309327291284,"ip_clicks_1h":4.0,"conversion_rate_pub":0.13797621124179005}},{"family":"human","label":"Human","x":[-0.49401,1.66896,-0.80011,-0.42433,-0.32837,-0.13044,-0.32005,-0.33861,1.75507,-0.6071,-0.03499,0.36765,-0.43566,-0.44356,2.21104,-1.96372,-0.22711,-0.13419],"p_rf":0.0161,"raw":{"device_type":"desktop","browser":"Chrome","os":"iOS","session_duration":12.155268328778194,"mouse_move_events":147.0,"touch_events":0.0,"scroll_depth_pct":8.505996885696849,"keystrokes":4.0,"avg_click_interval_ms":882.2761676607349,"click_interval_std_ms":744.1183880809396,"ua_entropy":3.7922437992259264,"ip_clicks_1h":5.0,"conversion_rate_pub":0.15697428196168214}},{"family":"human","label":"Human","x":[-0.57038,1.34856,-0.80011,-0.52245,-0.46083,-0.22244,0.10705,-0.33861,-0.31932,0.69186,-0.17711,0.06957,-0.14355,-0.125,-0.08987,0.50794,-0.20688,0.31973],"p_rf":0.0597,"raw":{"device_type":"desktop","browser":"Chrome","os":"Windows","session_duration":2.043438317312408,"mouse_move_events":126.0,"touch_events":0.0,"scroll_depth_pct":15.502143839451513,"keystrokes":4.0,"avg_click_interval_ms":296.7097802321589,"click_interval_std_ms":139.84303551579285,"ua_entropy":4.089949851745112,"ip_clicks_1h":5.0,"conversion_rate_pub":0.046794265355127464}},{"family":"human","label":"Bot","x":[0.01468,-0.55857,0.63598,0.11718,-0.19292,-0.33929,0.1448,-0.65385,-0.60944,0.69186,0.10714,0.66574,-0.53303,-0.54975,2.68685,-2.04972,-0.22952,-0.72276],"p_rf":0.558,"raw":{"device_type":"mobile","browser":"Safari","os":"Windows","session_duration":79.5108195672967,"mouse_move_events":1.0,"touch_events":30.0,"scroll_depth_pct":40.77522961350603,"keystrokes":3.0,"avg_click_interval_ms":4113.888053070512,"click_interval_std_ms":1362.0006469956388,"ua_entropy":4.116269014113147,"ip_clicks_1h":3.0,"conversion_rate_pub":0.03138421968418941}},{"family":"crude","label":"Bot","x":[-0.51475,-0.57097,-0.75224,-0.48296,-0.48575,-0.42481,-1.00797,2.97133,-1.00162,-0.6071,2.66533,2.15618,4.72486,4.44103,-0.0083,0.64219,-0.21406,2.72359],"p_rf":0.9563,"raw":{"device_type":"mobile","browser":"Firefox","os":"Android","session_duration":9.409564704109123,"mouse_move_events":0.187616910788478,"touch_events":1.0,"scroll_depth_pct":4.6046801299880675,"keystrokes":1.0,"avg_click_interval_ms":532.3947534033042,"click_interval_std_ms":26.16948616931598,"ua_entropy":3.3127260522597046,"ip_clicks_1h":26.0,"conversion_rate_pub":0.010553905736365507}},{"family":"crude","label":"Bot","x":[-0.5238,-0.52806,-0.80011,-0.48699,-0.48161,-0.44226,-0.62596,3.44418,-1.12041,-1.25658,1.52835,2.45426,2.68012,2.95442,1.32058,-1.59047,-0.21922,2.23206],"p_rf":0.9925,"raw":{"device_type":"desktop","browser":"Chrome","os":"Linux","session_duration":8.21183993363476,"mouse_move_events":3.0,"touch_events":0.0,"scroll_depth_pct":47.93902022462651,"keystrokes":0.0,"avg_click_interval_ms":508.330064073596,"click_interval_std_ms":45.07648159962209,"ua_entropy":3.579005467399009,"ip_clicks_1h":29.0,"conversion_rate_pub":0.0042444396510743845}},{"family":"crude","label":"Bot","x":[-0.54552,-0.57383,-0.80011,-0.52159,-0.47909,-0.48356,-1.77726,1.55278,-1.16332,-1.25658,-0.31923,-0.22852,-0.33829,-0.33737,-0.66085,0.34789,-0.09773,-0.13419],"p_rf":0.9886,"raw":{"device_type":"desktop","browser":"Chrome","os":"Android","session_duration":5.335713397766169,"mouse_move_events":0.0,"touch_events":0.0,"scroll_depth_pct":45.41262667560147,"keystrokes":null,"avg_click_interval_ms":301.88953534087386,"click_interval_std_ms":56.560007457996825,"ua_entropy":2.7764912148629697,"ip_clicks_1h":17.0,"conversion_rate_pub":0.001965247567733889}},{"family":"crude","label":"Bot","x":[-0.47418,-0.54332,-0.80011,-0.43649,-0.46779,-0.44665,-1.21482,1.55278,-1.00885,-0.6071,-0.46135,-0.52661,-0.04618,-0.01881,-0.82738,0.55947,0.04017,-0.05161],"p_rf":0.9949,"raw":{"device_type":"desktop","browser":"HeadlessChrome","os":"macOS","session_duration":14.7815839078432,"mouse_move_events":2.0,"touch_events":0.0,"scroll_depth_pct":16.00460215096012,"keystrokes":1.0,"avg_click_interval_ms":809.7016290697982,"click_interval_std_ms":108.1057431862243,"ua_entropy":3.168544913916127,"ip_clicks_1h":17.0,"conversion_rate_pub":0.010170238677321357}},{"family":"jittered","label":"Bot","x":[-0.34953,-0.55486,-0.75224,-0.4641,-0.47109,-0.12866,-0.22416,0.44947,-0.81636,-1.25658,0.81774,1.85809,1.12223,1.14924,0.19222,-0.8229,-0.1956,1.66359],"p_rf":0.9977,"raw":{"device_type":"mobile","browser":"HeadlessChrome","os":"Windows","session_duration":31.285888722927435,"mouse_move_events":1.2436952705592357,"touch_events":1.0,"scroll_depth_pct":36.16520913650441,"keystrokes":1.0,"avg_click_interval_ms":644.9239729230155,"click_interval_std_ms":93.06540110305967,"ua_entropy":3.8590793168037756,"ip_clicks_1h":10.0,"conversion_rate_pub":0.020394103939884153}},{"family":"jittered","label":"Bot","x":[-0.47707,-0.49755,-0.80011,-0.20014,-0.28231,-0.44484,0.08147,1.23755,-0.16059,-1.25658,-0.46135,-0.52661,0.44066,0.40593,-0.37196,-0.05969,-0.16088,0.23715],"p_rf":0.9943,"raw":{"device_type":"desktop","browser":"Firefox","os":"Linux","session_duration":14.399265925678678,"mouse_move_events":5.0,"touch_events":0.0,"scroll_depth_pct":47.161680993215796,"keystrokes":2.0,"avg_click_interval_ms":2220.2134175418632,"click_interval_std_ms":954.2083306789832,"ua_entropy":4.0721231283795625,"ip_clicks_1h":15.0,"conversion_rate_pub":0.055224805006246123}},{"family":"jittered","label":"Bot","x":[-0.45236,-0.56636,-0.46502,-0.4687,-0.44436,0.5276,-0.52522,1.07993,-0.99862,-0.6071,1.10199,1.85809,0.34329,0.40593,1.72503,-1.83111,-0.22215,1.42411],"p_rf":0.9932,"raw":{"device_type":"mobile","browser":"Other","os":"Android","session_duration":17.670622618259966,"mouse_move_events":0.4897048376956752,"touch_events":7.0,"scroll_depth_pct":26.865758609405432,"keystrokes":4.0,"avg_click_interval_ms":617.5061475084109,"click_interval_std_ms":214.98199502329402,"ua_entropy":3.649231725058688,"ip_clicks_1h":14.0,"conversion_rate_pub":0.01071333458991453}},{"family":"jittered","label":"Bot","x":[-0.48166,-0.43652,-0.80011,-0.36702,-0.35387,-0.45625,-1.37563,1.07993,-0.26821,-1.25658,0.5335,0.96383,-0.24092,-0.23119,-0.15784,-0.03998,-0.18884,0.65138],"p_rf":0.9916,"raw":{"device_type":"smart_tv","browser":"HeadlessChrome","os":"Windows","session_duration":13.791710903023347,"mouse_move_events":9.0,"touch_events":0.0,"scroll_depth_pct":38.96003890555902,"keystrokes":2.0,"avg_click_interval_ms":1224.29645979668,"click_interval_std_ms":627.7748723314613,"ua_entropy":3.0564493230729677,"ip_clicks_1h":14.0,"conversion_rate_pub":0.04950891996669287}},{"family":"mimicry","label":"Bot","x":[0.53459,-0.12132,-0.56076,0.11579,0.21794,0.4358,-1.68809,0.29185,-0.56266,1.34134,-0.46135,-0.52661,-0.24092,-0.23119,2.09548,-1.95449,-0.22603,-0.23187],"p_rf":0.9762,"raw":{"device_type":"tablet","browser":"Chrome","os":"Android","session_duration":148.3525326161175,"mouse_move_events":29.6591216039106,"touch_events":5.0,"scroll_depth_pct":21.144657647434386,"keystrokes":2.0,"avg_click_interval_ms":4105.605570660909,"click_interval_std_ms":3236.255361299486,"ua_entropy":2.838648243446035,"ip_clicks_1h":9.0,"conversion_rate_pub":0.03386927876476121}},{"family":"mimicry","label":"Bot","x":[0.01724,-0.13138,-0.80011,-0.37115,-0.29086,-0.02636,-0.03394,0.60709,-0.93953,-1.25658,-0.60347,-0.8247,-0.53303,-0.54975,-0.42294,0.68996,-0.17626,-0.72276],"p_rf":0.9761,"raw":{"device_type":"desktop","browser":"Safari","os":"Windows","session_duration":79.8502658319322,"mouse_move_events":29.0,"touch_events":0.0,"scroll_depth_pct":40.37577875862186,"keystrokes":5.0,"avg_click_interval_ms":1199.6593823725448,"click_interval_std_ms":915.2081618937275,"ua_entropy":3.9916749938384473,"ip_clicks_1h":11.0,"conversion_rate_pub":0.013851986011970355}},{"family":"mimicry","label":"Bot","x":[-0.54688,0.37211,-0.80011,0.36032,0.23108,-0.27077,-0.38099,-0.33861,-0.81949,0.69186,-0.46135,-0.52661,2.38802,2.42348,2.32659,-1.85031,-0.22936,0.76262],"p_rf":0.963,"raw":{"device_type":"desktop","browser":"Chrome","os":"Linux","session_duration":5.15485327400641,"mouse_move_events":62.0,"touch_events":0.0,"scroll_depth_pct":92.98662848471928,"keystrokes":7.0,"avg_click_interval_ms":5564.910842978122,"click_interval_std_ms":3296.2019279289552,"ua_entropy":3.7497663396968743,"ip_clicks_1h":5.0,"conversion_rate_pub":0.020227969729189645}},{"family":"mimicry","label":"Bot","x":[-0.56532,-0.55596,0.73172,-0.31925,-0.41742,-0.44659,-1.18174,-0.02338,-0.61589,-1.25658,-0.60347,-0.8247,-0.33829,-0.33737,-0.67444,0.12053,-0.08028,-0.72276],"p_rf":0.8711,"raw":{"device_type":"mobile","browser":"Chrome","os":"Android","session_duration":2.7139030490977074,"mouse_move_events":1.17099523821281,"touch_events":32.0,"scroll_depth_pct":56.4455903546099,"keystrokes":4.0,"avg_click_interval_ms":1509.3862561594885,"click_interval_std_ms":337.8801410585629,"ua_entropy":3.19159731523838,"ip_clicks_1h":7.0,"conversion_rate_pub":0.031042109567722406}},{"family":"proxy_farm","label":"Bot","x":[-0.49835,-0.57383,1.4019,0.37288,-0.06895,-0.23515,1.0148,-0.81146,-0.84341,0.69186,-0.60347,-0.8247,-0.53303,-0.54975,-0.96333,0.68996,0.88213,-0.72276],"p_rf":0.0079,"novelty":1.40511,"raw":{"device_type":"mobile","browser":"Chrome","os":"Other","session_duration":11.581068697522753,"mouse_move_events":0.0,"touch_events":46.0,"scroll_depth_pct":1.7969339428541597,"keystrokes":0.0,"avg_click_interval_ms":5639.870232841294,"click_interval_std_ms":1927.5300997556767,"ua_entropy":4.722698534717609,"ip_clicks_1h":2.0,"conversion_rate_pub":0.018957368484587248}},{"family":"proxy_farm","label":"Bot","x":[-0.43353,2.14192,0.82746,-0.03973,-0.12656,-0.46233,0.95002,-0.81146,-1.15765,1.34134,-0.60347,-0.8247,-0.53303,-0.54975,-0.91915,0.68996,0.32767,-0.72276],"p_rf":0.1482,"novelty":2.09268,"raw":{"device_type":"desktop","browser":"Chrome","os":"Android","session_duration":20.163911170906903,"mouse_move_events":178.0,"touch_events":34.0,"scroll_depth_pct":1.5053936000833863,"keystrokes":0.0,"avg_click_interval_ms":3177.5167838994757,"click_interval_std_ms":1664.698290251639,"ua_entropy":4.677549712211962,"ip_clicks_1h":2.0,"conversion_rate_pub":0.0022664259275529818}},{"family":"proxy_farm","label":"Bot","x":[-0.48857,1.34856,2.0242,-0.21977,-0.12408,-0.23355,0.9293,-0.81146,-0.9613,0.04238,-0.60347,-0.8247,-0.53303,-0.54975,-0.87496,0.68996,0.1336,-0.72276],"p_rf":0.1023,"novelty":2.01843,"raw":{"device_type":"desktop","browser":"Safari","os":"iOS","session_duration":12.87617837662922,"mouse_move_events":126.0,"touch_events":59.0,"scroll_depth_pct":1.4168196312539934,"keystrokes":0.0,"avg_click_interval_ms":2103.089480849856,"click_interval_std_ms":1676.030192557858,"ua_entropy":4.6631058248248225,"ip_clicks_1h":2.0,"conversion_rate_pub":0.012695728584687049}},{"family":"proxy_farm","label":"Bot","x":[0.17461,-0.57383,0.82746,0.03528,-0.07307,-0.39379,0.8877,-0.33861,-1.12551,0.04238,-0.60347,-0.8247,-0.53303,-0.54975,-0.94974,0.68996,0.62622,-0.72276],"p_rf":0.0906,"novelty":2.08156,"raw":{"device_type":"mobile","browser":"Safari","os":"Android","session_duration":100.6867245068032,"mouse_move_events":0.0,"touch_events":34.0,"scroll_depth_pct":2.451542851561764,"keystrokes":0.0,"avg_click_interval_ms":3625.16617164782,"click_interval_std_ms":1908.712839536338,"ua_entropy":4.634103611490915,"ip_clicks_1h":5.0,"conversion_rate_pub":0.003973584959422699}}]},"results":{"dataset":{"rows":24000,"raw_columns":31,"source":"behavioural simulator (4 bot families, 2% label noise)","class_counts":{"Human":15437,"Bot":8563},"family_counts":{"human":15600,"jittered":3192,"mimicry":2688,"crude":2520}},"evgf_build_rate_clicks_per_s":1792,"rfe_selected_features":["session_duration","mouse_move_events","touch_events","avg_click_interval_ms","click_interval_std_ms","time_to_first_click_ms","ua_entropy","ip_clicks_1h","conversion_rate_pub","referrer","ip_click_velocity_1h","ip_unique_pub_24h","dev_click_velocity_1h","dev_unique_ip_24h","pub_click_velocity_1h","pub_unique_ip_ratio_24h","pub_ip_concentration","entity_degree_score"],"all_features":["session_duration","pages_viewed","clicks_in_session","time_on_ad","mouse_move_events","touch_events","scroll_depth_pct","keystrokes","avg_click_interval_ms","click_interval_std_ms","time_to_first_click_ms","ua_entropy","hour_of_day","day_of_week","ip_clicks_1h","conversion_rate_pub","js_enabled","cookie_enabled","bounce","browser","os","device_type","country","referrer","ad_position","ip_click_velocity_1h","ip_unique_pub_24h","ip_burstiness","dev_click_velocity_1h","dev_unique_ip_24h","pub_click_velocity_1h","pub_unique_ip_ratio_24h","pub_ip_concentration","triad_repeat_count","entity_degree_score"],"table1_model_comparison":[{"Algorithm":"XGBoost","Accuracy":97.44,"Precision":97.78,"Recall":94.98,"F1-Score":96.36,"ROC-AUC":97.91,"PR-AUC":97.08,"MCC":0.9441,"FPR":1.2,"TP":1627,"FP":37,"FN":86,"TN":3050,"TrainTime_s":1.0,"InferTime_ms_per_1k":4.965},{"Algorithm":"LightGBM","Accuracy":97.17,"Precision":97.53,"Recall":94.45,"F1-Score":95.97,"ROC-AUC":97.75,"PR-AUC":96.94,"MCC":0.9381,"FPR":1.33,"TP":1618,"FP":41,"FN":95,"TN":3046,"TrainTime_s":1.13,"InferTime_ms_per_1k":22.243},{"Algorithm":"Random Forest","Accuracy":97.1,"Precision":97.75,"Recall":94.05,"F1-Score":95.86,"ROC-AUC":97.77,"PR-AUC":96.66,"MCC":0.9368,"FPR":1.2,"TP":1611,"FP":37,"FN":102,"TN":3050,"TrainTime_s":12.26,"InferTime_ms_per_1k":25.757},{"Algorithm":"DNN","Accuracy":97.06,"Precision":97.46,"Recall":94.22,"F1-Score":95.81,"ROC-AUC":97.71,"PR-AUC":96.94,"MCC":0.9358,"FPR":1.36,"TP":1614,"FP":42,"FN":99,"TN":3045,"TrainTime_s":1.71,"InferTime_ms_per_1k":11.651},{"Algorithm":"ANN (MLP)","Accuracy":97.06,"Precision":97.58,"Recall":94.1,"F1-Score":95.81,"ROC-AUC":97.76,"PR-AUC":96.32,"MCC":0.9359,"FPR":1.3,"TP":1612,"FP":40,"FN":101,"TN":3047,"TrainTime_s":1.32,"InferTime_ms_per_1k":0.399},{"Algorithm":"Gradient Boosting","Accuracy":96.98,"Precision":97.23,"Recall":94.22,"F1-Score":95.7,"ROC-AUC":97.79,"PR-AUC":96.94,"MCC":0.934,"FPR":1.49,"TP":1614,"FP":46,"FN":99,"TN":3041,"TrainTime_s":15.94,"InferTime_ms_per_1k":2.678},{"Algorithm":"SVM (RBF)","Accuracy":96.96,"Precision":97.86,"Recall":93.52,"F1-Score":95.64,"ROC-AUC":97.69,"PR-AUC":96.33,"MCC":0.9336,"FPR":1.13,"TP":1602,"FP":35,"FN":111,"TN":3052,"TrainTime_s":2.69,"InferTime_ms_per_1k":57.129},{"Algorithm":"RNN","Accuracy":96.77,"Precision":97.21,"Recall":93.64,"F1-Score":95.39,"ROC-AUC":97.74,"PR-AUC":96.52,"MCC":0.9295,"FPR":1.49,"TP":1604,"FP":46,"FN":109,"TN":3041,"TrainTime_s":8.06,"InferTime_ms_per_1k":13.356},{"Algorithm":"Logistic Regression","Accuracy":96.25,"Precision":98.12,"Recall":91.24,"F1-Score":94.56,"ROC-AUC":97.68,"PR-AUC":96.74,"MCC":0.9184,"FPR":0.97,"TP":1563,"FP":30,"FN":150,"TN":3057,"TrainTime_s":0.04,"InferTime_ms_per_1k":0.1},{"Algorithm":"Decision Tree","Accuracy":96.08,"Precision":95.52,"Recall":93.4,"F1-Score":94.45,"ROC-AUC":95.7,"PR-AUC":93.73,"MCC":0.9144,"FPR":2.43,"TP":1600,"FP":75,"FN":113,"TN":3012,"TrainTime_s":0.31,"InferTime_ms_per_1k":0.17},{"Algorithm":"KNN","Accuracy":95.83,"Precision":97.91,"Recall":90.25,"F1-Score":93.92,"ROC-AUC":96.62,"PR-AUC":94.83,"MCC":0.9094,"FPR":1.07,"TP":1546,"FP":33,"FN":167,"TN":3054,"TrainTime_s":0.0,"InferTime_ms_per_1k":65.165},{"Algorithm":"CNN","Accuracy":95.42,"Precision":96.17,"Recall":90.78,"F1-Score":93.39,"ROC-AUC":97.3,"PR-AUC":96.02,"MCC":0.8998,"FPR":2.01,"TP":1555,"FP":62,"FN":158,"TN":3025,"TrainTime_s":17.48,"InferTime_ms_per_1k":87.688},{"Algorithm":"CNN+Attention (Extension)","Accuracy":94.65,"Precision":91.84,"Recall":93.29,"F1-Score":92.56,"ROC-AUC":97.32,"PR-AUC":96.42,"MCC":0.8838,"FPR":4.6,"TP":1598,"FP":142,"FN":115,"TN":2945,"TrainTime_s":21.21,"InferTime_ms_per_1k":17.6},{"Algorithm":"Naive Bayes","Accuracy":93.12,"Precision":95.76,"Recall":84.47,"F1-Score":89.76,"ROC-AUC":96.39,"PR-AUC":95.19,"MCC":0.85,"FPR":2.07,"TP":1447,"FP":64,"FN":266,"TN":3023,"TrainTime_s":0.01,"InferTime_ms_per_1k":0.363}],"table2_evgf_ablation":[{"Algorithm":"Random Forest (full (+EVGF))","Accuracy":97.08,"Precision":97.81,"Recall":93.93,"F1-Score":95.83,"ROC-AUC":97.8,"PR-AUC":96.68,"MCC":0.9363,"FPR":1.17,"TP":1609,"FP":36,"FN":104,"TN":3051,"TrainTime_s":null,"InferTime_ms_per_1k":30.029},{"Algorithm":"Random Forest (behaviour + network)","Accuracy":96.5,"Precision":96.85,"Recall":93.23,"F1-Score":95.0,"ROC-AUC":97.86,"PR-AUC":97.2,"MCC":0.9235,"FPR":1.68,"TP":1597,"FP":52,"FN":116,"TN":3035,"TrainTime_s":null,"InferTime_ms_per_1k":32.726},{"Algorithm":"Random Forest (behaviour only)","Accuracy":93.06,"Precision":93.4,"Recall":86.69,"F1-Score":89.92,"ROC-AUC":96.75,"PR-AUC":95.27,"MCC":0.8478,"FPR":3.4,"TP":1485,"FP":105,"FN":228,"TN":2982,"TrainTime_s":null,"InferTime_ms_per_1k":40.375}],"table3_zero_day":[{"Algorithm":"Supervised only - in-distribution","Accuracy":97.08,"Precision":97.81,"Recall":93.93,"F1-Score":95.83,"ROC-AUC":97.8,"PR-AUC":96.68,"MCC":0.9363,"FPR":1.17,"TP":1609,"FP":36,"FN":104,"TN":3051,"TrainTime_s":null,"InferTime_ms_per_1k":32.064},{"Algorithm":"AdShield-X cascade - in-distribution","Accuracy":95.31,"Precision":92.86,"Recall":94.1,"F1-Score":93.48,"ROC-AUC":97.69,"PR-AUC":96.47,"MCC":0.8982,"FPR":4.02,"TP":1612,"FP":124,"FN":101,"TN":2963,"TrainTime_s":null,"InferTime_ms_per_1k":39.272},{"Algorithm":"AdShield-X cascade - ZERO-DAY family","Accuracy":91.28,"Precision":91.12,"Recall":83.56,"F1-Score":87.18,"ROC-AUC":92.15,"PR-AUC":89.01,"MCC":0.8076,"FPR":4.48,"TP":2964,"FP":289,"FN":583,"TN":6164,"TrainTime_s":null,"InferTime_ms_per_1k":32.037},{"Algorithm":"Supervised only - ZERO-DAY family","Accuracy":64.53,"Precision":50.0,"Recall":0.56,"F1-Score":1.12,"ROC-AUC":72.36,"PR-AUC":59.58,"MCC":0.0192,"FPR":0.31,"TP":20,"FP":20,"FN":3527,"TN":6433,"TrainTime_s":null,"InferTime_ms_per_1k":24.008}],"cascade_config":{"human_fp_budget":0.03,"supervised_gate_high":0.55},"table4_adversarial":[{"attack_budget":0.0,"ASR_behaviour_only_%":13.31,"ASR_plus_EVGF_%":6.07,"ASR_plus_EVGF_advtrain_%":5.08},{"attack_budget":0.3,"ASR_behaviour_only_%":27.2,"ASR_plus_EVGF_%":6.42,"ASR_plus_EVGF_advtrain_%":0.93},{"attack_budget":0.6,"ASR_behaviour_only_%":66.2,"ASR_plus_EVGF_%":7.47,"ASR_plus_EVGF_advtrain_%":1.28},{"attack_budget":0.9,"ASR_behaviour_only_%":89.26,"ASR_plus_EVGF_%":9.57,"ASR_plus_EVGF_advtrain_%":1.52}],"adversarial_clean_cost":{"clean_F1_plus_EVGF":95.83,"clean_F1_plus_EVGF_advtrain":95.82,"clean_FPR_plus_EVGF":1.17,"clean_FPR_plus_EVGF_advtrain":1.78},"table5_cost":[{"optimal_threshold":0.63,"cost_per_click_at_0.5":1.2,"cost_per_click_at_opt":1.08,"saving_per_million_clicks_INR":120000.0,"CPC_INR":18.0,"false_block_multiplier":6.0},{"optimal_threshold":0.58,"cost_per_click_at_0.5":0.795,"cost_per_click_at_opt":0.765,"saving_per_million_clicks_INR":30000.0,"CPC_INR":18.0,"false_block_multiplier":3.0},{"optimal_threshold":0.63,"cost_per_click_at_0.5":3.0,"cost_per_click_at_opt":2.7,"saving_per_million_clicks_INR":300000.0,"CPC_INR":45.0,"false_block_multiplier":6.0}],"cost_curves":{"cpc18.0_m6.0":{"t":[0.01,0.025,0.04,0.055,0.06999999999999999,0.08499999999999999,0.09999999999999999,0.11499999999999999,0.13,0.14500000000000002,0.16,0.17500000000000002,0.19,0.20500000000000002,0.22,0.23500000000000001,0.25,0.265,0.28,0.29500000000000004,0.31,0.325,0.34,0.35500000000000004,0.37,0.385,0.4,0.41500000000000004,0.43,0.445,0.46,0.47500000000000003,0.49,0.505,0.52,0.535,0.55,0.5650000000000001,0.5800000000000001,0.595,0.61,0.625,0.64,0.655,0.67,0.685,0.7000000000000001,0.715,0.73,0.745,0.76,0.775,0.79,0.805,0.8200000000000001,0.8350000000000001,0.85,0.865,0.88,0.895,0.91,0.925,0.9400000000000001,0.9550000000000001,0.97,0.985],"cost":[64.72875,30.4725,18.54375,13.12125,10.01625,7.78125,6.42,5.14125,4.36125,3.87,3.4875,3.2175,2.9025,2.6175,2.445,2.20875,2.085,1.995,1.92,1.92375,1.7925,1.725,1.6875,1.62,1.54125,1.5,1.4175,1.42125,1.33875,1.29375,1.24125,1.22625,1.21125,1.20375,1.2075,1.1925,1.1775,1.12125,1.1025,1.10625,1.09125,1.1025,1.08375,1.09875,1.1175,1.12875,1.13625,1.155,1.1325,1.15875,1.14375,1.15875,1.185,1.21125,1.24875,1.2975,1.335,1.38375,1.48875,1.58625,1.725,1.905,2.13,2.5725,3.4575,4.94625]}},"table6_drift":[{"block":0,"accuracy_static_%":97.28,"accuracy_adaptive_%":97.28},{"block":1,"accuracy_static_%":97.28,"accuracy_adaptive_%":97.28},{"block":2,"accuracy_static_%":91.94,"accuracy_adaptive_%":91.96},{"block":3,"accuracy_static_%":77.34,"accuracy_adaptive_%":84.8}],"drift_retrain_points":[10500,15500],"table7_latency":{"RandomForest (+EVGF)":[{"batch_size":1,"batch_latency_ms":14.673,"per_click_us":14672.91,"throughput_clicks_per_s":68},{"batch_size":32,"batch_latency_ms":16.531,"per_click_us":516.6,"throughput_clicks_per_s":1935},{"batch_size":256,"batch_latency_ms":25.817,"per_click_us":100.85,"throughput_clicks_per_s":9915},{"batch_size":1024,"batch_latency_ms":53.581,"per_click_us":52.32,"throughput_clicks_per_s":19111}],"CNN+Attention":[{"batch_size":1,"batch_latency_ms":0.193,"per_click_us":192.66,"throughput_clicks_per_s":5190},{"batch_size":32,"batch_latency_ms":0.736,"per_click_us":23.01,"throughput_clicks_per_s":43464},{"batch_size":256,"batch_latency_ms":27.673,"per_click_us":108.1,"throughput_clicks_per_s":9250},{"batch_size":1024,"batch_latency_ms":76.44,"per_click_us":74.65,"throughput_clicks_per_s":13396}]},"table8_lofo":[{"family":"crude","family_label":"Crude headless automation","held_out_clicks":2000,"supervised_recall":96.22,"cascade_recall":96.31,"supervised_precision":97.93,"cascade_precision":90.27,"supervised_f1":97.06,"cascade_f1":93.2,"in_dist_f1_supervised":95.33,"in_dist_f1_cascade":93.13,"in_dist_fpr_supervised":1.39,"in_dist_fpr_cascade":3.83},{"family":"jittered","family_label":"Jittered automation","held_out_clicks":2000,"supervised_recall":95.88,"cascade_recall":95.93,"supervised_precision":97.97,"cascade_precision":90.04,"supervised_f1":96.91,"cascade_f1":92.89,"in_dist_f1_supervised":95.79,"in_dist_f1_cascade":93.19,"in_dist_fpr_supervised":1.72,"in_dist_fpr_cascade":4.71},{"family":"mimicry","family_label":"Behavioural mimicry","held_out_clicks":2000,"supervised_recall":65.38,"cascade_recall":66.44,"supervised_precision":98.11,"cascade_precision":86.73,"supervised_f1":78.47,"cascade_f1":75.24,"in_dist_f1_supervised":96.94,"in_dist_f1_cascade":94.11,"in_dist_fpr_supervised":1.01,"in_dist_fpr_cascade":4.16},{"family":"proxy_farm","family_label":"Residential proxy farm","held_out_clicks":2000,"supervised_recall":4.94,"cascade_recall":87.75,"supervised_precision":94.44,"cascade_precision":88.56,"supervised_f1":9.39,"cascade_f1":88.15,"in_dist_f1_supervised":95.23,"in_dist_f1_cascade":92.18,"in_dist_fpr_supervised":1.22,"in_dist_fpr_cascade":4.88}],"roc":{"XGBoost":{"fpr":[0.0,0.0,0.0,0.00032,0.00032,0.00065,0.00097,0.0013,0.00162,0.00162,0.00194,0.00227,0.00259,0.00259,0.00292,0.00324,0.00324,0.00356,0.00356,0.00389,0.00421,0.00454,0.00486,0.00518,0.00551,0.00583,0.00615,0.00648,0.0068,0.00713,0.00745,0.00777,0.0081,0.00842,0.00875,0.00939,0.00972,0.01004,0.01037,0.01069,0.01101,0.01134,0.01166,0.01328,0.01393,0.01425,0.01717,0.01782,0.01846,0.02073,0.02365,0.02559,0.03045,0.03077,0.03207,0.03369,0.03401,0.04373,0.04762,0.05183,0.05669,0.06252,0.06868,0.07094,0.07159,0.07353,0.08682,0.09297,0.10269,0.11403,0.11467,0.11727,0.12051,0.1312,0.13476,0.13735,0.14674,0.161,0.16229,0.16489,0.20408,0.21607,0.25591,0.26498,0.29122,0.31811,0.36605,0.36994,0.38387,0.40201,0.41237,0.41723,0.42112,0.42857,0.43699,0.43991,0.44477,0.44963,0.4587,0.48591,0.51668,0.52446,0.59281,0.60803,0.63784,0.65986,0.67768,0.68319,0.6942,0.70619,0.73631,0.77583,0.77648,0.82604,0.82961,0.84613,0.84645,0.88597,0.89245,0.95303,0.98121,0.98413,0.99158,1.0,1.0],"tpr":[0.0,0.03386,0.04495,0.07881,0.09982,0.10333,0.13368,0.16813,0.21891,0.26562,0.2662,0.26737,0.27087,0.27612,0.30765,0.31699,0.33508,0.37245,0.38471,0.40397,0.44542,0.51372,0.53707,0.58144,0.58727,0.61413,0.68535,0.71278,0.74664,0.83771,0.86398,0.88266,0.9101,0.9171,0.92061,0.92761,0.93287,0.93403,0.94221,0.94279,0.94337,0.94396,0.94746,0.9498,0.95038,0.95213,0.95271,0.9533,0.95388,0.95505,0.95563,0.95622,0.9568,0.95738,0.95797,0.95855,0.95914,0.95972,0.9603,0.96089,0.96147,0.96205,0.96264,0.96322,0.96381,0.96439,0.96497,0.96556,0.96614,0.96673,0.96731,0.96789,0.96848,0.96906,0.96964,0.97023,0.97081,0.9714,0.97198,0.97256,0.97315,0.97373,0.9749,0.97607,0.97665,0.97723,0.97782,0.9784,0.97898,0.97957,0.98015,0.98074,0.98132,0.9819,0.98249,0.98307,0.98365,0.98424,0.98482,0.98541,0.98599,0.98657,0.98716,0.98774,0.98832,0.98891,0.98949,0.99008,0.99066,0.99183,0.99241,0.99299,0.99358,0.99416,0.99475,0.99533,0.99591,0.9965,0.99708,0.99766,0.99825,0.99883,0.99942,1.0,1.0],"auc":97.91},"Random Forest":{"fpr":[0.0,0.0,0.00032,0.00065,0.00097,0.0013,0.00162,0.00194,0.00227,0.00259,0.00292,0.00324,0.00356,0.00389,0.00421,0.00454,0.00518,0.00551,0.00583,0.00615,0.00648,0.0068,0.00713,0.00745,0.00777,0.0081,0.00842,0.00907,0.00939,0.00972,0.01004,0.01069,0.01134,0.01166,0.01231,0.01263,0.01296,0.01328,0.01361,0.01458,0.0149,0.01555,0.01587,0.01684,0.01749,0.01782,0.02041,0.0217,0.02332,0.02365,0.02397,0.0243,0.02689,0.02753,0.02786,0.02948,0.03077,0.03207,0.03337,0.03401,0.03563,0.05572,0.06025,0.06608,0.08163,0.10463,0.10496,0.10755,0.10949,0.11176,0.11208,0.12698,0.14707,0.1516,0.15679,0.16715,0.16942,0.17946,0.19955,0.20311,0.21283,0.2287,0.23,0.26628,0.3139,0.32232,0.33333,0.33625,0.34338,0.35439,0.40363,0.4059,0.40654,0.43375,0.43829,0.45578,0.46388,0.47587,0.48785,0.49725,0.52154,0.53612,0.53741,0.58665,0.59119,0.59248,0.62164,0.63039,0.65274,0.6806,0.71299,0.71914,0.72238,0.74214,0.77033,0.77162,0.77648,0.80143,0.8079,0.82604,0.8931,0.95335,0.96339,0.96696,0.97538,0.99546,1.0],"tpr":[0.0,0.00584,0.08581,0.12376,0.12843,0.15295,0.16579,0.19907,0.2014,0.22767,0.25978,0.28897,0.28955,0.39521,0.41097,0.45359,0.46118,0.53182,0.5756,0.67601,0.71687,0.77583,0.78634,0.82137,0.88149,0.91068,0.91535,0.92995,0.93228,0.93345,0.9352,0.93579,0.93695,0.94104,0.94279,0.94337,0.94396,0.94513,0.94571,0.94629,0.94688,0.94746,0.94863,0.94921,0.9498,0.95096,0.95213,0.95271,0.9533,0.95388,0.95505,0.95563,0.95622,0.9568,0.95797,0.95855,0.95914,0.95972,0.9603,0.96089,0.96147,0.96205,0.96264,0.96322,0.96381,0.96439,0.96497,0.96556,0.96614,0.96673,0.96731,0.96789,0.96848,0.96906,0.96964,0.97023,0.97081,0.9714,0.97198,0.97256,0.97315,0.97431,0.9749,0.97548,0.97607,0.97665,0.97723,0.97782,0.9784,0.97898,0.97957,0.98015,0.98074,0.98132,0.9819,0.98249,0.98307,0.98365,0.98424,0.98482,0.98541,0.98599,0.98657,0.98716,0.98774,0.98832,0.98891,0.98949,0.99008,0.99066,0.99124,0.99183,0.99241,0.99299,0.99358,0.99416,0.99475,0.99533,0.99591,0.9965,0.99708,0.99766,0.99825,0.99883,0.99942,1.0,1.0],"auc":97.8},"Logistic Regression":{"fpr":[0.0,0.0,0.00032,0.00065,0.00097,0.0013,0.00162,0.00227,0.00259,0.00292,0.00324,0.00356,0.00389,0.00421,0.00454,0.00486,0.00518,0.00551,0.00583,0.00615,0.00648,0.0068,0.00713,0.00745,0.00777,0.0081,0.00842,0.00875,0.00907,0.00939,0.00972,0.01004,0.01037,0.01101,0.01166,0.01199,0.01231,0.01263,0.01296,0.01393,0.0162,0.01684,0.01717,0.01749,0.01782,0.01814,0.01846,0.02041,0.02073,0.02106,0.0217,0.02203,0.02235,0.02332,0.0243,0.02462,0.02721,0.02786,0.02818,0.03045,0.03239,0.03272,0.03499,0.03531,0.03596,0.03758,0.0379,0.03887,0.0392,0.04179,0.04308,0.04341,0.04503,0.0473,0.04827,0.04956,0.04989,0.05118,0.05475,0.06058,0.06122,0.06446,0.07127,0.0758,0.08001,0.08325,0.08552,0.08779,0.10787,0.11759,0.13184,0.17331,0.17849,0.18659,0.20343,0.21704,0.23777,0.23907,0.23939,0.24555,0.24943,0.25332,0.29057,0.32005,0.37901,0.39909,0.41399,0.41594,0.44412,0.45935,0.45999,0.46971,0.47328,0.48137,0.49368,0.5047,0.51506,0.54487,0.55005,0.55167,0.6184,0.66537,0.67477,0.68902,0.69355,0.72076,0.72206,0.74409,0.74506,0.75445,0.76547,0.77292,0.77519,0.78555,0.83803,0.84451,0.85649,0.87496,0.91189,0.9242,0.95789,0.9783,0.98575,0.98639,1.0],"tpr":[0.0,0.01459,0.07881,0.15762,0.19323,0.20257,0.20724,0.21775,0.25277,0.3275,0.3345,0.35143,0.41565,0.42207,0.45534,0.48161,0.49445,0.55867,0.55984,0.61938,0.75715,0.81611,0.82545,0.83596,0.85814,0.88208,0.89025,0.89083,0.89726,0.90368,0.91594,0.91827,0.91944,0.92294,0.92469,0.92528,0.92644,0.92703,0.92878,0.92936,0.92995,0.9317,0.93345,0.93403,0.93462,0.9352,0.93695,0.93812,0.9387,0.94104,0.94162,0.94221,0.94279,0.94337,0.94396,0.94513,0.94571,0.94629,0.94688,0.94746,0.94863,0.94921,0.95038,0.95096,0.95155,0.95271,0.95388,0.95447,0.95505,0.95563,0.95622,0.9568,0.95738,0.95797,0.95855,0.95914,0.95972,0.9603,0.96205,0.96264,0.96322,0.96381,0.96439,0.96497,0.96556,0.96614,0.96673,0.96731,0.96789,0.96848,0.96906,0.96964,0.97023,0.97081,0.9714,0.97198,0.97256,0.97315,0.97373,0.97431,0.9749,0.97548,0.97607,0.97665,0.97723,0.97782,0.9784,0.97898,0.97957,0.98015,0.98074,0.98132,0.9819,0.98249,0.98307,0.98365,0.98424,0.98482,0.98541,0.98599,0.98657,0.98716,0.98774,0.98832,0.98891,0.98949,0.99008,0.99066,0.99124,0.99183,0.99241,0.99299,0.99358,0.99416,0.99475,0.99533,0.99591,0.9965,0.99708,0.99766,0.99825,0.99883,0.99942,1.0,1.0],"auc":97.68},"CNN+Attention":{"fpr":[0.0,0.0,0.00032,0.00097,0.0013,0.00194,0.00227,0.00292,0.00324,0.00356,0.00389,0.00454,0.00486,0.00551,0.00583,0.00648,0.0068,0.00745,0.00777,0.00842,0.00875,0.00939,0.00972,0.01037,0.01069,0.01134,0.01166,0.01263,0.01296,0.01393,0.01425,0.0149,0.01523,0.01587,0.01652,0.01717,0.01749,0.01976,0.02008,0.02235,0.023,0.02397,0.02462,0.02592,0.02753,0.02851,0.03175,0.03304,0.03563,0.0379,0.03952,0.04373,0.04406,0.046,0.04632,0.04989,0.05021,0.05345,0.05539,0.05863,0.05896,0.06155,0.06252,0.06317,0.06446,0.06965,0.07062,0.07386,0.07483,0.07613,0.0771,0.07969,0.0852,0.09006,0.09038,0.09491,0.09524,0.09718,0.10528,0.11403,0.13249,0.14189,0.14415,0.15614,0.15711,0.18173,0.19663,0.20019,0.23356,0.23745,0.24036,0.25202,0.253,0.26109,0.26369,0.29284,0.30321,0.32232,0.3275,0.33398,0.35439,0.38322,0.39002,0.39423,0.40752,0.43797,0.44153,0.45481,0.48105,0.51701,0.52996,0.61192,0.62488,0.65922,0.66084,0.76029,0.76612,0.78879,0.8309,0.85261,0.8714,0.88403,0.88856,0.90411,0.94947,0.96534,0.97732,1.0,1.0],"tpr":[0.0,0.10041,0.11442,0.13135,0.18447,0.18681,0.30064,0.3059,0.37945,0.44658,0.49621,0.50321,0.55166,0.56451,0.59953,0.64565,0.6941,0.75365,0.79451,0.7951,0.81845,0.83187,0.84647,0.85231,0.85698,0.86982,0.88558,0.88733,0.89025,0.89083,0.89434,0.89609,0.89726,0.89842,0.90193,0.90251,0.90426,0.90543,0.90776,0.90952,0.91127,0.91302,0.91477,0.91594,0.91827,0.91886,0.92002,0.92061,0.92353,0.92411,0.92703,0.92761,0.92995,0.93228,0.93345,0.93403,0.9352,0.93579,0.93695,0.93754,0.9387,0.93929,0.94046,0.94104,0.94221,0.94279,0.94396,0.94454,0.94629,0.94688,0.94863,0.94921,0.95038,0.95096,0.9533,0.95388,0.95563,0.95622,0.95738,0.95797,0.95914,0.95972,0.96089,0.96147,0.96264,0.96322,0.96439,0.96497,0.96614,0.96673,0.96789,0.96848,0.96964,0.97023,0.9714,0.97198,0.97315,0.97373,0.9749,0.97548,0.97665,0.97723,0.97782,0.9784,0.97957,0.98015,0.98132,0.9819,0.98307,0.98365,0.98482,0.98541,0.98716,0.98774,0.98891,0.98949,0.99066,0.99124,0.99241,0.99299,0.99416,0.99475,0.99591,0.9965,0.99766,0.99825,0.99942,1.0,1.0],"auc":97.32}},"confusion":{"XGBoost":{"tn":3052,"fp":35,"fn":96,"tp":1617,"threshold":0.63},"Random Forest":{"tn":3059,"fp":28,"fn":120,"tp":1593,"threshold":0.63},"Logistic Regression":{"tn":3061,"fp":26,"fn":196,"tp":1517,"threshold":0.63},"CNN+Attention":{"tn":2945,"fp":142,"fn":115,"tp":1598,"threshold":0.5}}}}</script>
+<script>
+const D = JSON.parse(document.getElementById('payload').textContent);
+const M = D.model, R = D.results;
+const CPC = 18.0, MULT = 6.0;
+
+/* ---------------- scoring ---------------- */
+function zvec(x){ return x.map((v,i)=>(v-M.mean[i])/M.scale[i]); }
+function score(x){                      // x already standardised
+  let z = M.intercept;
+  for(let i=0;i<x.length;i++) z += M.coef[i]*x[i];
+  return 1/(1+Math.exp(-z));
+}
+function contribs(x){
+  return M.coef.map((c,i)=>({f:M.features[i], v:c*x[i]}))
+               .sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
+}
+const PHRASE = {
+ mouse_move_events:["Pointer activity","almost no pointer movement recorded"],
+ touch_events:["Touch activity","touch events on a device that should not have them"],
+ scroll_depth_pct:["Scroll behaviour","the page was never scrolled below the fold"],
+ session_duration:["Session length","the session ended almost immediately"],
+ keystrokes:["Keyboard activity","no keyboard interaction at all"],
+ avg_click_interval_ms:["Click cadence","unnaturally fast click cadence"],
+ click_interval_std_ms:["Timing regularity","clicks arrive at machine-regular intervals"],
+ time_to_first_click_ms:["Time to first click","clicked before a person could read the page"],
+ ua_entropy:["User-agent profile","low-entropy, templated user agent"],
+ ip_clicks_1h:["IP velocity","abnormal click volume from this IP in one hour"],
+ conversion_rate_pub:["Publisher quality","this publisher converts far below network norm"],
+ ip_click_velocity_1h:["IP velocity","abnormal click volume from this IP in one hour"],
+ ip_unique_pub_24h:["IP fan-out","the same IP is clicking across many publishers"],
+ ip_burstiness:["Burst pattern","clicks arrive in tight machine bursts"],
+ dev_click_velocity_1h:["Device velocity","one device generating excessive clicks"],
+ dev_unique_ip_24h:["Device and IP churn","one device rotating through many IPs"],
+ pub_click_velocity_1h:["Publisher volume","a traffic spike on this publisher"],
+ pub_unique_ip_ratio_24h:["Audience diversity","implausibly low audience diversity"],
+ pub_ip_concentration:["Traffic concentration","publisher traffic sits on very few IPs"],
+ entity_degree_score:["Network density","the click sits in a dense IP and device cluster"],
+ time_on_ad:["Dwell time","near-zero dwell time on the creative"],
+ pages_viewed:["Pages seen","page depth inconsistent with the visit length"],
+ clicks_in_session:["Clicks per visit","more clicks than a visit of this length warrants"],
+ hour_of_day:["Time of day","clicked in a window with almost no human traffic"],
+ bounce:["Engagement","immediate bounce after the click"],
+ js_enabled:["Client capability","JavaScript disabled or stubbed"],
+ cookie_enabled:["Client capability","cookies rejected"]
+};
+const inv = new Set(["ip_click_velocity_1h","ip_unique_pub_24h","ip_burstiness",
+  "dev_click_velocity_1h","dev_unique_ip_24h","pub_click_velocity_1h",
+  "pub_unique_ip_ratio_24h","pub_ip_concentration","entity_degree_score",
+  "ip_clicks_1h","conversion_rate_pub"]);
+
+/* ---------------- inspector state ---------------- */
+const SLIDERS = ["mouse_move_events","click_interval_std_ms","scroll_depth_pct",
+                 "ua_entropy","ip_click_velocity_1h","dev_unique_ip_24h"];
+const SLABEL = {mouse_move_events:"Pointer moves",
+  click_interval_std_ms:"Click-timing spread", scroll_depth_pct:"Scroll depth",
+  ua_entropy:"User-agent entropy", ip_click_velocity_1h:"Clicks from this IP, 1h",
+  dev_unique_ip_24h:"IPs used by this device, 24h"};
+let cur = null, curSample = null;
+
+function makeSliders(){
+  const box = document.getElementById('sliders');
+  box.innerHTML = SLIDERS.map(f=>{
+    const i = M.features.indexOf(f);
+    if(i<0) return '';
+    return `<div class="slider"><label for="s${i}"><span>${SLABEL[f]}</span>
+      <span class="val mono" id="v${i}">0.00</span></label>
+      <input type="range" id="s${i}" data-i="${i}" min="-2.5" max="4" step="0.05"></div>`;
+  }).join('');
+  box.querySelectorAll('input').forEach(el=>el.addEventListener('input',e=>{
+    cur[+e.target.dataset.i] = +e.target.value;
+    curSample = null;
+    document.querySelectorAll('#replay .chip').forEach(c=>c.setAttribute('aria-pressed','false'));
+    render();
+  }));
+}
+function syncSliders(){
+  SLIDERS.forEach(f=>{
+    const i = M.features.indexOf(f); if(i<0) return;
+    const el=document.getElementById('s'+i); if(!el) return;
+    el.value = Math.max(-2.5, Math.min(4, cur[i]));
+    document.getElementById('v'+i).textContent = cur[i].toFixed(2)+"σ";
+  });
+}
+
+function load(k){
+  const s = M.samples[k];
+  cur = s.x.slice(); curSample = s;
+  document.querySelectorAll('#replay .chip').forEach((c,j)=>
+    c.setAttribute('aria-pressed', j===k ? 'true':'false'));
+  syncSliders(); render();
+}
+
+function render(){
+  const p = score(cur);
+  const thr = M.threshold;
+  const esc = curSample && curSample.novelty!==undefined
+              && curSample.novelty > M.novelty_cut && p < 0.55;
+  const pe = esc ? Math.max(p, 0.55) : p;
+  const fraud = pe >= thr;
+
+  document.getElementById('pct').textContent = (pe*100).toFixed(1);
+  document.getElementById('fill').style.width = (pe*100).toFixed(1)+'%';
+  document.getElementById('mark').style.left = (thr*100).toFixed(1)+'%';
+  document.getElementById('thrlabel').textContent = 'block above '+thr.toFixed(2);
+
+  const st = document.getElementById('stamp');
+  if(fraud){ st.className='stamp f'; st.textContent='Invalid click — do not charge'; }
+  else if(pe>thr-0.18){ st.className='stamp w'; st.textContent='Watchlist'; }
+  else { st.className='stamp c'; st.textContent='Legitimate — charge allowed'; }
+
+  document.getElementById('escbox').innerHTML = esc
+    ? `<div class="escalated">The supervised model scored this
+       ${(p*100).toFixed(1)}% and would have let it through. The
+       legitimate-behaviour autoencoder reconstructs it badly
+       (${curSample.novelty.toFixed(3)} against a
+       ${M.novelty_cut.toFixed(3)} gate), so the cascade escalated it.</div>` : '';
+
+  const ml = document.getElementById('moneylabel');
+  const mv = document.getElementById('moneyval');
+  if(fraud){ ml.textContent='Charge blocked, budget kept';
+             mv.textContent='₹'+CPC.toFixed(2); mv.style.color='var(--clean)'; }
+  else { ml.textContent='Charge allowed to the advertiser';
+         mv.textContent='−₹'+CPC.toFixed(2); mv.style.color='var(--ink)'; }
+
+  const cs = contribs(cur).slice(0,5);
+  const mx = Math.max(...cs.map(c=>Math.abs(c.v)),1e-6);
+  document.getElementById('reasons').innerHTML = cs.map(c=>{
+    const ph = PHRASE[c.f] || [c.f.replace(/_/g,' '), 'unusual '+c.f.replace(/_/g,' ')];
+    const w = Math.abs(c.v)/mx*36;
+    const neg = c.v<0;
+    return `<li><span>${ph[0]}<span class="why">${neg?'consistent with a real visitor':ph[1]}</span></span>
+      <span class="bar"><i class="${neg?'neg':''}" style="width:${w.toFixed(1)}px;
+        ${neg?`right:50%;left:auto`:`left:50%`}"></i></span></li>`;
+  }).join('');
+
+  document.getElementById('rawline').textContent = curSample
+    ? `Recorded click · ${curSample.raw.device_type} · ${curSample.raw.browser} on ${curSample.raw.os} · ground truth: ${curSample.label}`
+    : 'Adjusted click · no ground-truth label';
+}
+
+/* ---------------- replay chips ---------------- */
+const FAMLABEL = {human:'Real visitor', crude:'Crude bot', jittered:'Jittered bot',
+                  mimicry:'Mimicry bot', proxy_farm:'Proxy farm (unseen)'};
+(function(){
+  const seen = {};
+  document.getElementById('replay').innerHTML = M.samples.map((s,i)=>{
+    seen[s.family]=(seen[s.family]||0)+1;
+    return `<button class="chip" aria-pressed="false" data-k="${i}">${FAMLABEL[s.family]} ${seen[s.family]}</button>`;
+  }).join('');
+  document.querySelectorAll('#replay .chip').forEach(b=>
+    b.addEventListener('click',()=>load(+b.dataset.k)));
+  makeSliders(); load(0);
+})();
+
+/* ---------------- ledger ---------------- */
+(function(){
+  let blocked=0, allowed=0, caught=0, missed=0, fp=0;
+  const rows = M.samples.map(s=>{
+    const p = score(s.x);
+    const esc = s.novelty!==undefined && s.novelty>M.novelty_cut && p<0.55;
+    const pe = esc?Math.max(p,0.55):p;
+    const f = pe>=M.threshold;
+    const bot = s.label==='Bot';
+    if(f){blocked++; if(bot)caught++; else fp++;} else {allowed++; if(bot)missed++;}
+    return `<tr><td>${FAMLABEL[s.family]}</td><td>${s.label}</td>
+      <td class="n">${(p*100).toFixed(1)}</td>
+      <td>${esc?'autoencoder':'—'}</td>
+      <td style="color:${f?'var(--fraud)':'var(--clean)'}">${f?'Blocked':'Allowed'}</td>
+      <td class="n">${f?'+':'−'}₹${CPC.toFixed(2)}</td></tr>`;
+  }).join('');
+  document.getElementById('ledgertab').innerHTML =
+    `<thead><tr><th>Traffic source</th><th>Ground truth</th>
+     <th class="n">Supervised %</th><th>Escalated by</th><th>Decision</th>
+     <th class="n">Budget effect</th></tr></thead><tbody>${rows}</tbody>`;
+  document.getElementById('ledgersum').textContent =
+    `${blocked} blocked, ${allowed} allowed. ${caught} of ${caught+missed} bots caught, `+
+    `${fp} legitimate clicks wrongly blocked, ₹${(blocked*CPC).toFixed(2)} of spend held back.`;
+})();
+
+/* ---------------- small chart helpers ---------------- */
+function svg(w,h,inner){return `<svg viewBox="0 0 ${w} ${h}" role="img">${inner}</svg>`;}
+function txt(x,y,s,o={}){return `<text x="${x}" y="${y}" font-size="${o.s||11}"
+  fill="${o.c||'#5C6E7C'}" text-anchor="${o.a||'start'}"
+  font-family="${o.m?'IBM Plex Mono, monospace':'Instrument Sans, sans-serif'}"
+  font-weight="${o.w||400}">${s}</text>`;}
+
+/* ablation */
+(function(){
+  const t = R.table2_evgf_ablation;
+  const order = ["behaviour only","behaviour + network","full (+EVGF)"];
+  const get = k => t.find(r=>r.Algorithm.includes(k));
+  const rows = order.map(k=>({k, r:get(k)}));
+  document.getElementById('ablcards').innerHTML = rows.map(({k,r})=>
+    `<div class="stat"><span class="n mono">${r["F1-Score"].toFixed(2)}</span>
+     <div class="k">F1 · ${k.replace('(+EVGF)','plus entity graph')}</div>
+     <div class="d">Recall ${r.Recall.toFixed(2)}% · false positives ${r.FPR.toFixed(2)}%
+     · ${r.FP} real visitors blocked</div></div>`).join('');
+
+  const W=680,H=210,L=168,x0=L,x1=W-56;
+  let s='';
+  rows.forEach((o,i)=>{
+    const y=42+i*54;
+    const wf=(o.r["F1-Score"]-84)/(100-84)*(x1-x0);
+    const wp=(o.r.FPR/4)*(x1-x0);
+    s+=txt(L-10,y+10,o.k.replace('(+EVGF)','+ entity graph'),{a:'end',s:12.5,c:'#16212B'});
+    s+=`<rect x="${x0}" y="${y}" width="${wf}" height="13" fill="#23566E"/>`;
+    s+=txt(x0+wf+6,y+11,o.r["F1-Score"].toFixed(2),{m:1,s:11.5,c:'#23566E',w:500});
+    s+=`<rect x="${x0}" y="${y+17}" width="${wp}" height="13" fill="#9E2B25" opacity=".8"/>`;
+    s+=txt(x0+wp+6,y+28,o.r.FPR.toFixed(2)+'% blocked in error',{m:0,s:11.5,c:'#9E2B25'});
+  });
+  s+=txt(x0,196,'Upper bar: F1 score. Lower bar: false-positive rate.',{s:11.5});
+  document.getElementById('ablchart').innerHTML = svg(W,H,s);
+})();
+
+/* zero-day cards */
+(function(){
+  const t=R.table3_zero_day, g=k=>t.find(r=>r.Algorithm===k);
+  const sup=g("Supervised only - ZERO-DAY family"),
+        cas=g("AdShield-X cascade - ZERO-DAY family"),
+        ind=g("Supervised only - in-distribution"),
+        cin=g("AdShield-X cascade - in-distribution");
+  document.getElementById('zdcards').innerHTML = `
+   <div class="stat"><span class="n mono" style="color:var(--fraud)">${sup.Recall.toFixed(2)}%</span>
+     <div class="k">Recall, supervised model alone</div>
+     <div class="d">${sup.FN.toLocaleString()} of ${(sup.FN+sup.TP).toLocaleString()} farm clicks
+       waved through and charged to the advertiser.</div></div>
+   <div class="stat"><span class="n mono" style="color:var(--clean)">${cas.Recall.toFixed(2)}%</span>
+     <div class="k">Recall with the novelty head</div>
+     <div class="d">Precision holds at ${cas.Precision.toFixed(2)}% on a family that
+       contributed nothing to training.</div></div>
+   <div class="stat"><span class="n mono">${(ind["F1-Score"]-cin["F1-Score"]).toFixed(2)}</span>
+     <div class="k">F1 given up on ordinary traffic</div>
+     <div class="d">${ind["F1-Score"].toFixed(2)} falls to ${cin["F1-Score"].toFixed(2)}.
+       That is the whole price of the second head.</div></div>`;
+})();
+
+/* adversarial */
+(function(){
+  const t=R.table4_adversarial;
+  const W=680,H=290,L=52,B=H-46,T=22,Rr=W-24;
+  const xs=b=>L+(b/0.9)*(Rr-L), ys=v=>B-(v/100)*(B-T);
+  let s=`<rect x="${L}" y="${T}" width="${Rr-L}" height="${B-T}" fill="#fff" stroke="#C9D4DC"/>`;
+  [0,25,50,75,100].forEach(v=>{s+=`<line x1="${L}" y1="${ys(v)}" x2="${Rr}" y2="${ys(v)}" stroke="#E4EBEF"/>`+txt(L-8,ys(v)+4,v+'%',{a:'end',m:1,s:11});});
+  t.forEach(r=>s+=txt(xs(r.attack_budget),B+18,r.attack_budget.toFixed(1),{a:'middle',m:1,s:11}));
+  const series=[["ASR_behaviour_only_%","#9E2B25","behavioural features only"],
+                ["ASR_plus_EVGF_%","#A66A11","plus entity-velocity graph"],
+                ["ASR_plus_EVGF_advtrain_%","#1D6B4F","plus adversarial training"]];
+  series.forEach(([k,c,lab],i)=>{
+    const pts=t.map(r=>`${xs(r.attack_budget)},${ys(r[k])}`).join(' ');
+    s+=`<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.2"/>`;
+    t.forEach(r=>s+=`<circle cx="${xs(r.attack_budget)}" cy="${ys(r[k])}" r="3.4" fill="${c}"/>`);
+    const last=t[t.length-1];
+    s+=txt(L+8,T+16+i*16,lab,{c,s:12,w:500});
+    s+=txt(xs(last.attack_budget)-4,ys(last[k])-9,last[k].toFixed(1)+'%',{a:'end',m:1,s:11.5,c,w:600});
+  });
+  s+=txt((L+Rr)/2,H-8,'replay fidelity of the attacking bot',{a:'middle',s:11.5});
+  document.getElementById('advchart').innerHTML=svg(W,H,s);
+  const a=t[t.length-1];
+  document.getElementById('advcap').textContent =
+   `At full replay fidelity a behaviour-only detector lets ${a["ASR_behaviour_only_%"]}% of bots through. `+
+   `The entity graph holds it to ${a["ASR_plus_EVGF_%"]}% because click velocity and publisher `+
+   `concentration are the ad server's own counters, not something the browser can forge. `+
+   `Adversarial training brings it to ${a["ASR_plus_EVGF_advtrain_%"]}%, costing `+
+   `${(R.adversarial_clean_cost.clean_F1_plus_EVGF-R.adversarial_clean_cost.clean_F1_plus_EVGF_advtrain).toFixed(2)} F1 on clean traffic.`;
+})();
+
+/* drift */
+(function(){
+  const t=R.table6_drift;
+  const W=680,H=270,L=52,B=H-46,T=22,Rr=W-24;
+  const lo=70, xs=i=>L+(i/3)*(Rr-L), ys=v=>B-((v-lo)/(100-lo))*(B-T);
+  let s=`<rect x="${L}" y="${T}" width="${Rr-L}" height="${B-T}" fill="#fff" stroke="#C9D4DC"/>`;
+  [70,80,90,100].forEach(v=>{s+=`<line x1="${L}" y1="${ys(v)}" x2="${Rr}" y2="${ys(v)}" stroke="#E4EBEF"/>`+txt(L-8,ys(v)+4,v+'%',{a:'end',m:1,s:11});});
+  const names=['mostly crude bots','shifting','mimicry dominant','proxy farm arrives'];
+  t.forEach((r,i)=>s+=txt(xs(i),B+18,'block '+i,{a:'middle',m:1,s:11})
+                    +txt(xs(i),B+31,names[i],{a:'middle',s:10.5}));
+  [["accuracy_static_%","#9E2B25","frozen after training"],
+   ["accuracy_adaptive_%","#1D6B4F","drift-monitored, self-retraining"]].forEach(([k,c,lab],i)=>{
+    const pts=t.map((r,j)=>`${xs(j)},${ys(r[k])}`).join(' ');
+    s+=`<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.2"/>`;
+    t.forEach((r,j)=>s+=`<circle cx="${xs(j)}" cy="${ys(r[k])}" r="3.4" fill="${c}"/>`);
+    s+=txt(L+8,T+16+i*16,lab,{c,s:12,w:500});
+  });
+  const last=t[t.length-1];
+  s+=txt(xs(3)-6,ys(last["accuracy_static_%"])+16,last["accuracy_static_%"]+'%',{a:'end',m:1,s:11.5,c:'#9E2B25',w:600});
+  s+=txt(xs(3)-6,ys(last["accuracy_adaptive_%"])-9,last["accuracy_adaptive_%"]+'%',{a:'end',m:1,s:11.5,c:'#1D6B4F',w:600});
+  document.getElementById('driftchart').innerHTML=svg(W,H,s);
+  document.getElementById('driftcap').textContent =
+    `The frozen detector loses ${(t[0]["accuracy_static_%"]-last["accuracy_static_%"]).toFixed(2)} `+
+    `points of accuracy by the final block. The monitored one recovers `+
+    `${(last["accuracy_adaptive_%"]-last["accuracy_static_%"]).toFixed(2)} of them, `+
+    `retraining ${R.drift_retrain_points.length} time${R.drift_retrain_points.length===1?'':'s'} across the stream.`;
+})();
+
+/* cost */
+(function(){
+  const c=R.cost_curves["cpc18.0_m6.0"], t=R.table5_cost;
+  const W=680,H=250,L=64,B=H-42,T=20,Rr=W-24;
+  const mn=Math.min(...c.cost), mx=Math.max(...c.cost);
+  const xs=v=>L+v*(Rr-L), ys=v=>B-((v-mn)/(mx-mn))*(B-T);
+  let s=`<rect x="${L}" y="${T}" width="${Rr-L}" height="${B-T}" fill="#fff" stroke="#C9D4DC"/>`;
+  const pts=c.t.map((v,i)=>`${xs(v)},${ys(c.cost[i])}`).join(' ');
+  s+=`<polyline points="${pts}" fill="none" stroke="#23566E" stroke-width="2.2"/>`;
+  const best=t[0].optimal_threshold, bi=c.t.reduce((a,v,i)=>Math.abs(v-best)<Math.abs(c.t[a]-best)?i:a,0);
+  const hi=c.t.reduce((a,v,i)=>Math.abs(v-0.5)<Math.abs(c.t[a]-0.5)?i:a,0);
+  s+=`<line x1="${xs(0.5)}" y1="${T}" x2="${xs(0.5)}" y2="${B}" stroke="#9E2B25" stroke-dasharray="4 3"/>`;
+  s+=`<circle cx="${xs(0.5)}" cy="${ys(c.cost[hi])}" r="4.5" fill="#9E2B25"/>`;
+  s+=`<line x1="${xs(best)}" y1="${T}" x2="${xs(best)}" y2="${B}" stroke="#1D6B4F" stroke-dasharray="4 3"/>`;
+  s+=`<circle cx="${xs(best)}" cy="${ys(c.cost[bi])}" r="4.5" fill="#1D6B4F"/>`;
+  s+=txt(xs(0.5)-8,T+14,'accuracy-style cut, 0.50',{a:'end',s:11.5,c:'#9E2B25'});
+  s+=txt(xs(best)+8,T+14,'cost-optimal, '+best.toFixed(2),{s:11.5,c:'#1D6B4F'});
+  [0,0.25,0.5,0.75,1].forEach(v=>s+=txt(xs(v),B+17,v.toFixed(2),{a:'middle',m:1,s:11}));
+  s+=txt(L-8,ys(mn)+4,'₹'+mn.toFixed(2),{a:'end',m:1,s:11});
+  s+=txt(L-8,ys(mx)+4,'₹'+mx.toFixed(2),{a:'end',m:1,s:11});
+  s+=txt(8,(T+B)/2,'expected loss per click',{a:'middle',s:11.5}).replace('<text','<text transform="rotate(-90 12 '+((T+B)/2)+')"');
+  document.getElementById('costchart').innerHTML=svg(W,H,s);
+  document.getElementById('costcap').textContent =
+    `At ₹${t[0].CPC_INR} per click, with a wrongly blocked customer costing `+
+    `${t[0].false_block_multiplier}× the click price, the loss-minimising threshold is `+
+    `${t[0].optimal_threshold} rather than 0.50, worth `+
+    `₹${Number(t[0]["saving_per_million_clicks_INR"]).toLocaleString('en-IN')} per million clicks.`;
+  document.getElementById('costtab').innerHTML =
+    `<thead><tr><th class="n">CPC</th><th class="n">Cost of a wrong block</th>
+      <th class="n">Best threshold</th><th class="n">Loss at 0.50</th>
+      <th class="n">Loss at best</th><th class="n">Saved per 1M clicks</th></tr></thead><tbody>`+
+    t.map(r=>`<tr><td class="n">₹${r.CPC_INR}</td>
+      <td class="n">${r.false_block_multiplier}× CPC</td>
+      <td class="n">${r.optimal_threshold}</td>
+      <td class="n">₹${r["cost_per_click_at_0.5"].toFixed(3)}</td>
+      <td class="n">₹${r.cost_per_click_at_opt.toFixed(3)}</td>
+      <td class="n">₹${Number(r["saving_per_million_clicks_INR"]).toLocaleString('en-IN')}</td></tr>`).join('')
+    +`</tbody>`;
+})();
+
+/* model table */
+(function(){
+  const t=R.table1_model_comparison;
+  document.getElementById('modeltab').innerHTML =
+    `<thead><tr><th>Algorithm</th><th class="n">Accuracy</th><th class="n">Precision</th>
+     <th class="n">Recall</th><th class="n">F1</th><th class="n">ROC-AUC</th>
+     <th class="n">False positives</th><th class="n">Train (s)</th></tr></thead><tbody>`+
+    t.map((r,i)=>`<tr class="${i===0?'best':''}"><td>${r.Algorithm}</td>
+      <td class="n">${r.Accuracy.toFixed(2)}</td><td class="n">${r.Precision.toFixed(2)}</td>
+      <td class="n">${r.Recall.toFixed(2)}</td><td class="n">${r["F1-Score"].toFixed(2)}</td>
+      <td class="n">${r["ROC-AUC"].toFixed(2)}</td><td class="n">${r.FPR.toFixed(2)}%</td>
+      <td class="n">${r.TrainTime_s ?? '—'}</td></tr>`).join('')+`</tbody>`;
+})();
+
+
+/* leave-one-family-out */
+(function(){
+  const t = (R.table8_lofo||[]);
+  if(!t.length){document.getElementById('lofo').style.display='none';return;}
+  document.getElementById('lofotab').innerHTML =
+   `<thead><tr><th>Withheld family</th><th class="n">Clicks</th>
+     <th class="n">Supervised recall</th><th class="n">Cascade recall</th>
+     <th class="n">Gain</th><th class="n">In-distribution F1</th></tr></thead><tbody>`+
+   t.map(r=>{
+     const g=r.cascade_recall-r.supervised_recall;
+     return `<tr><td>${r.family_label}</td>
+       <td class="n">${r.held_out_clicks.toLocaleString()}</td>
+       <td class="n">${r.supervised_recall.toFixed(2)}%</td>
+       <td class="n">${r.cascade_recall.toFixed(2)}%</td>
+       <td class="n" style="color:${g>5?'var(--clean)':'var(--muted)'}">${g>0?'+':''}${g.toFixed(2)}</td>
+       <td class="n">${r.in_dist_f1_supervised.toFixed(2)} → ${r.in_dist_f1_cascade.toFixed(2)}</td></tr>`;
+   }).join('')+`</tbody>`;
+  const ms=t.reduce((a,r)=>a+r.supervised_recall,0)/t.length;
+  const mc=t.reduce((a,r)=>a+r.cascade_recall,0)/t.length;
+  const big=t.filter(r=>r.cascade_recall-r.supervised_recall>5).map(r=>r.family_label.toLowerCase());
+  document.getElementById('lofonote').textContent =
+   `Mean recall on the unknown family rises from ${ms.toFixed(2)}% to ${mc.toFixed(2)}%, `+
+   `a gain of ${(mc-ms).toFixed(2)} points. The gain is not evenly spread, and that is the `+
+   `finding: the novelty head barely moves when the withheld family is a variation of ones `+
+   `already seen, and carries the result when the withheld family is structurally different `+
+   `(${big.join(', ')}). A second head buys protection against new kinds of fraud, not against `+
+   `new instances of familiar fraud.`;
+})();
+
+/* ROC + confusion */
+(function(){
+  const roc=R.roc, cms=R.confusion;
+  if(!roc){document.getElementById('roc').style.display='none';return;}
+  const W=560,H=380,L=54,B=H-46,T=18,Rr=W-90;
+  const XM=0.14, YMIN=0.80;                    // zoom on the useful corner
+  const xs=v=>L+Math.min(v,XM)/XM*(Rr-L), ys=v=>B-(Math.max(v,YMIN)-YMIN)/(1-YMIN)*(B-T);
+  let s=`<rect x="${L}" y="${T}" width="${Rr-L}" height="${B-T}" fill="#fff" stroke="#C9D4DC"/>`;
+  [0.80,0.85,0.90,0.95,1.0].forEach(v=>{s+=`<line x1="${L}" y1="${ys(v)}" x2="${Rr}" y2="${ys(v)}" stroke="#E4EBEF"/>`+txt(L-8,ys(v)+4,v.toFixed(2),{a:'end',m:1,s:10.5});});
+  [0,0.05,0.10].forEach(v=>{s+=`<line x1="${xs(v)}" y1="${T}" x2="${xs(v)}" y2="${B}" stroke="#E4EBEF"/>`+txt(xs(v),B+16,v.toFixed(2),{a:'middle',m:1,s:10.5});});
+  const cols={"XGBoost":"#23566E","Random Forest":"#1D6B4F","Logistic Regression":"#A66A11","CNN+Attention":"#9E2B25"};
+  Object.entries(roc).forEach(([k,v],i)=>{
+    const pts=v.fpr.map((f,j)=>`${xs(f)},${ys(v.tpr[j])}`).join(' ');
+    s+=`<polyline points="${pts}" fill="none" stroke="${cols[k]}" stroke-width="2"/>`;
+    s+=txt(Rr+6,T+16+i*17,k,{c:cols[k],s:11.5,w:500});
+    s+=txt(Rr+6,T+28+i*17,'AUC '+v.auc.toFixed(2),{c:cols[k],s:10.5,m:1});
+  });
+  s+=txt((L+Rr)/2,H-8,'false-positive rate',{a:'middle',s:11});
+  document.getElementById('rocchart').innerHTML=svg(W,H,s);
+
+  document.getElementById('cmbox').innerHTML = Object.entries(cms).slice(0,3).map(([k,c])=>{
+    const tot=c.tn+c.fp+c.fn+c.tp;
+    return `<div class="stat" style="margin-bottom:12px">
+      <div class="k" style="margin:0 0 8px;color:var(--ink);font-weight:600">${k}
+        <span style="font-weight:400;color:var(--muted)"> at ${c.threshold}</span></div>
+      <table style="font-size:13px">
+        <tr><td></td><th class="n">said legit</th><th class="n">said fraud</th></tr>
+        <tr><th>really legit</th><td class="n">${c.tn.toLocaleString()}</td>
+            <td class="n" style="color:var(--fraud)">${c.fp}</td></tr>
+        <tr><th>really fraud</th><td class="n" style="color:var(--watch)">${c.fn}</td>
+            <td class="n">${c.tp.toLocaleString()}</td></tr>
+      </table>
+      <div class="d" style="margin-top:8px">${c.fp} real visitors blocked, ${c.fn} bots billed,
+        out of ${tot.toLocaleString()} clicks.</div></div>`;
+  }).join('');
+})();
+
+/* header + footer */
+(function(){
+  const d=R.dataset, lat=R.table7_latency["CNN+Attention"][0];
+  document.getElementById('hdrstat').innerHTML =
+    `${d.rows.toLocaleString()} clicks · ${R.all_features.length} features, ${R.rfe_selected_features.length} kept<br>`+
+    `4 bot families · 2% label noise`;
+  document.getElementById('foot').innerHTML =
+    `Scoring in this page runs a logistic surrogate distilled from the deployed
+     random forest; it agrees with the full model on
+     ${(M.surrogate_agreement*100).toFixed(2)}% of test clicks, which is what
+     makes live scoring possible without a server. Every table and chart below
+     the inspector is the real output of <span class="mono">run_pipeline.py</span>
+     on a held-out 20% split. Clicks come from a behavioural simulator, not from
+     production traffic, because the dataset in the source paper is licensed and
+     unpublished; the same pipeline runs unchanged on a real CSV.`;
+})();
+</script>
+</body>
+</html>

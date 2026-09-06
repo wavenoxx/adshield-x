@@ -1,0 +1,4 @@
+optimal_threshold,cost_per_click_at_0.5,cost_per_click_at_opt,saving_per_million_clicks_INR,CPC_INR,false_block_multiplier
+0.63,1.2,1.08,120000.0,18.0,6.0
+0.58,0.795,0.765,30000.0,18.0,3.0
+0.63,3.0,2.7,300000.0,45.0,6.0

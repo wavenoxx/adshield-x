@@ -1,0 +1,127 @@
+<svg viewBox="0 0 980 600" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="AdShield-X pipeline architecture">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#5C6E7C"/></marker>
+    <marker id="arA" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#9E2B25"/></marker>
+    <marker id="arG" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#1D6B4F"/></marker>
+    <style>
+      .b{fill:#FFFFFF;stroke:#C9D4DC;stroke-width:1.2}
+      .bs{fill:#F3F7F9;stroke:#C9D4DC;stroke-width:1.2}
+      .bk{fill:#EAF0F4;stroke:#23566E;stroke-width:1.6}
+      .t{font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:12.5px;fill:#16212B}
+      .tb{font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:13px;
+          font-weight:600;fill:#16212B}
+      .ts{font-family:'Instrument Sans',Helvetica,Arial,sans-serif;font-size:11px;fill:#5C6E7C}
+      .tm{font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:#23566E}
+      .ln{stroke:#5C6E7C;stroke-width:1.4;fill:none;marker-end:url(#ar)}
+      .lnA{stroke:#9E2B25;stroke-width:1.4;fill:none;marker-end:url(#arA);stroke-dasharray:5 3}
+      .lnG{stroke:#1D6B4F;stroke-width:1.4;fill:none;marker-end:url(#arG);stroke-dasharray:5 3}
+    </style>
+  </defs>
+
+  <text class="ts" x="16" y="26" font-size="12">Numbered blocks are the five contributions. White blocks are the standard pipeline.</text>
+
+  <!-- ingest -->
+  <rect class="bs" x="16" y="128" width="112" height="70" rx="3"/>
+  <text class="tb" x="29" y="153">Click stream</text>
+  <text class="ts" x="29" y="171">ip · device ·</text>
+  <text class="ts" x="29" y="186">publisher · time</text>
+
+  <!-- EVGF -->
+  <rect class="bk" x="158" y="112" width="148" height="102" rx="3"/>
+  <text class="tb" x="171" y="136">1 · EVGF</text>
+  <text class="ts" x="171" y="154">backward-window</text>
+  <text class="ts" x="171" y="169">counters over the</text>
+  <text class="ts" x="171" y="184">ip–device–publisher</text>
+  <text class="ts" x="171" y="199">graph</text>
+  <text class="tm" x="171" y="211">10 features · O(1)</text>
+  <line class="ln" x1="128" y1="163" x2="154" y2="163"/>
+
+  <!-- preprocess -->
+  <rect class="bs" x="336" y="128" width="126" height="70" rx="3"/>
+  <text class="tb" x="349" y="152">Encode · impute</text>
+  <text class="ts" x="349" y="170">scale, then RFE</text>
+  <text class="tm" x="349" y="188">35 → 18 features</text>
+  <line class="ln" x1="306" y1="163" x2="332" y2="163"/>
+
+  <line class="ln" x1="462" y1="152" x2="534" y2="96"/>
+  <line class="ln" x1="462" y1="176" x2="534" y2="242"/>
+
+  <!-- supervised head -->
+  <rect class="b" x="538" y="56" width="180" height="76" rx="3"/>
+  <text class="tb" x="551" y="80">Supervised head</text>
+  <text class="ts" x="551" y="98">gradient-boosted trees</text>
+  <text class="tm" x="551" y="117">P(fraud | x)</text>
+
+  <!-- novelty head -->
+  <rect class="bk" x="538" y="204" width="180" height="90" rx="3"/>
+  <text class="tb" x="551" y="228">2 · Novelty head</text>
+  <text class="ts" x="551" y="246">quantile transform, then an</text>
+  <text class="ts" x="551" y="261">autoencoder fitted only on</text>
+  <text class="ts" x="551" y="276">legitimate clicks</text>
+  <text class="tm" x="551" y="290">sees all 35 features</text>
+
+  <!-- cascade gate -->
+  <rect class="b" x="752" y="128" width="196" height="94" rx="3"/>
+  <text class="tb" x="765" y="152">Cascade gate</text>
+  <text class="ts" x="765" y="170">escalate when p &lt; 0.55 and</text>
+  <text class="ts" x="765" y="185">the click reconstructs badly</text>
+  <text class="ts" x="765" y="200">under legitimate behaviour</text>
+  <text class="tm" x="765" y="215">β = 3% false-positive budget</text>
+  <line class="ln" x1="718" y1="94" x2="748" y2="154"/>
+  <line class="ln" x1="718" y1="248" x2="748" y2="198"/>
+
+  <!-- cost cut -->
+  <rect class="bk" x="538" y="326" width="210" height="86" rx="3"/>
+  <text class="tb" x="551" y="350">4 · Cost-optimal cut</text>
+  <text class="ts" x="551" y="368">minimise FP·c_FP + FN·c_FN</text>
+  <text class="ts" x="551" y="383">from the click price and the</text>
+  <text class="ts" x="551" y="398">cost of blocking a customer</text>
+  <path class="ln" d="M850 222 L850 292 L740 292 L740 322"/>
+
+  <!-- decisions -->
+  <rect class="b" x="786" y="326" width="162" height="38" rx="3" fill="#F7E8E7" stroke="#9E2B25"/>
+  <text class="tb" x="799" y="350" fill="#9E2B25">Block, do not bill</text>
+  <rect class="b" x="786" y="374" width="162" height="38" rx="3" fill="#E4F0EA" stroke="#1D6B4F"/>
+  <text class="tb" x="799" y="398" fill="#1D6B4F">Allow the charge</text>
+  <line class="ln" x1="748" y1="356" x2="782" y2="348"/>
+  <line class="ln" x1="748" y1="382" x2="782" y2="392"/>
+
+  <!-- reason codes -->
+  <rect class="b" x="296" y="452" width="180" height="86" rx="3"/>
+  <text class="tb" x="309" y="476">6 · Reason codes</text>
+  <text class="ts" x="309" y="494">SHAP contributions in</text>
+  <text class="ts" x="309" y="509">plain language, so the</text>
+  <text class="ts" x="309" y="524">charge can be disputed</text>
+  <path class="ln" d="M556 416 L520 448 L482 462"/>
+
+  <!-- adversary -->
+  <rect class="b" x="16" y="452" width="252" height="118" rx="3" stroke="#9E2B25"/>
+  <text class="tb" x="29" y="476" fill="#9E2B25">3 · Adaptive adversary</text>
+  <text class="ts" x="29" y="494">replays captured human sessions into</text>
+  <text class="ts" x="29" y="509">the columns it owns: pointer, scroll,</text>
+  <text class="ts" x="29" y="524">dwell, cadence, user agent, device</text>
+  <text class="ts" x="29" y="546">server-side counters stay out of reach</text>
+  <text class="ts" x="29" y="561">unless it also cuts its own revenue</text>
+  <path class="lnA" d="M262 448 L340 300 L392 204"/>
+  <text class="tm" x="352" y="286" fill="#9E2B25">forgeable</text>
+  <path stroke="#9E2B25" stroke-width="1.4" fill="none" stroke-dasharray="5 3"
+        d="M150 452 L150 300 L196 220"/>
+  <g stroke="#9E2B25" stroke-width="2">
+    <line x1="164" y1="316" x2="180" y2="332"/><line x1="180" y1="316" x2="164" y2="332"/>
+  </g>
+  <text class="tm" x="60" y="330" fill="#9E2B25">out of reach</text>
+
+  <!-- drift -->
+  <rect class="bk" x="538" y="452" width="410" height="86" rx="3"/>
+  <text class="tb" x="551" y="476">5 · Drift monitor</text>
+  <text class="ts" x="551" y="494">two-window change detector on the streaming error signal;</text>
+  <text class="ts" x="551" y="509">on a Hoeffding-bounded change the model refits on recent traffic</text>
+  <text class="tm" x="551" y="527">retrains when the adversary moves, not on a schedule</text>
+  <path class="lnG" d="M866 412 L866 448"/>
+  <path class="lnG" d="M538 494 L502 494 L502 94 L534 94"/>
+  <text class="tm" x="470" y="452" fill="#1D6B4F" text-anchor="end">refit</text>
+</svg>

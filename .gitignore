@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Runtime database created by the Flask app on first run
+outputs/adshield.db
+outputs/adshield.db-wal
+outputs/adshield.db-shm
+
+# Pipeline checkpoints — large, regenerable, never commit these
+outputs/_state.joblib
+outputs/_stage2.joblib
+outputs/_curves.json
+outputs/_lofo_*.json
+cache/
+
+# Local secrets
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

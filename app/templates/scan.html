@@ -1,0 +1,50 @@
+{% extends "base.html" %}{% block title %}New scan — AdShield-X{% endblock %}
+{% block body %}
+<h1>New scan</h1>
+{% if error %}<div class="flash">{{ error }}</div>{% endif %}
+
+<div class="panel">
+  <h2>Upload a click log</h2>
+  <p class="note">Any CSV with a label column (clicked, class, label, is_fraud …)
+    or none at all. Where the log carries ip, device, publisher and timestamp
+    columns the entity-graph features are computed too.</p>
+  <form method="post" enctype="multipart/form-data" class="row">
+    <div class="field grow"><label for="csv">CSV file</label>
+      <input id="csv" type="file" name="csv" accept=".csv" required></div>
+    <button type="submit" name="mode" value="upload">Score the file</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Generate a sample</h2>
+  <p class="note">Draws fresh traffic from the simulator, labels included, so the
+    verdicts can be checked against ground truth.</p>
+  <form method="post" class="row">
+    <div class="field" style="max-width:170px"><label for="n">How many clicks</label>
+      <input id="n" type="number" name="n" value="25" min="5" max="1000"></div>
+    <button class="ghost" type="submit" name="mode" value="sample">Generate and score</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Score one click by hand</h2>
+  <p class="note">The defaults describe an ordinary desktop visitor. Change a few
+    values — drop the pointer moves to zero, push the clicks-from-this-IP up —
+    and watch the verdict move.</p>
+  <form method="post">
+    <div class="formgrid">
+      {% for key, label, default in fields %}
+      <div class="field"><label for="f_{{ key }}">{{ label }}</label>
+        <input id="f_{{ key }}" name="{{ key }}" value="{{ defaults[key] }}"></div>
+      {% endfor %}
+      {% for key, label, options, default in cats %}
+      <div class="field"><label for="c_{{ key }}">{{ label }}</label>
+        <select id="c_{{ key }}" name="{{ key }}">
+          {% for o in options %}<option value="{{ o }}" {% if o == defaults[key] %}selected{% endif %}>{{ o }}</option>{% endfor %}
+        </select></div>
+      {% endfor %}
+    </div>
+    <button type="submit" name="mode" value="manual">Score this click</button>
+  </form>
+</div>
+{% endblock %}

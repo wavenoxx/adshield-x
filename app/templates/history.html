@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block title %}History — AdShield-X{% endblock %}
+{% block body %}
+<h1>History</h1>
+<p class="note">Every scan this account has run, newest first.</p>
+<div class="panel">
+{% if scans %}
+<div class="scroller"><table>
+  <thead><tr><th class="n">#</th><th>Source</th><th>Detail</th><th class="n">Clicks</th>
+    <th class="n">Blocked</th><th class="n">Escalated</th><th class="n">Held back</th>
+    <th>When</th><th></th></tr></thead>
+  <tbody>{% for s in scans %}
+    <tr><td class="n">{{ s['id'] }}</td><td>{{ s['source'] }}</td><td>{{ s['label'] }}</td>
+      <td class="n">{{ s['n_clicks'] }}</td><td class="n">{{ s['n_blocked'] }}</td>
+      <td class="n">{{ s['n_escalated'] }}</td>
+      <td class="n">₹{{ '{:,.2f}'.format(s['budget_held']) }}</td>
+      <td class="mono small">{{ s['created_at'][:16].replace('T',' ') }}</td>
+      <td><a href="{{ url_for('scan_detail', scan_id=s['id']) }}">Open</a></td></tr>
+  {% endfor %}</tbody></table></div>
+{% else %}<p class="note">No scans yet.</p>{% endif %}
+</div>
+{% endblock %}

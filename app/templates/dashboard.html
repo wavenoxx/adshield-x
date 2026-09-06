@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% block title %}Dashboard — AdShield-X{% endblock %}
+{% block body %}
+<h1>Dashboard</h1>
+{% if warn %}<div class="flash">{{ warn }}</div>{% endif %}
+<div class="cards">
+  <div class="stat"><span class="n mono">{{ '{:,}'.format(totals.clicks) }}</span>
+    <div class="k">clicks scanned</div></div>
+  <div class="stat"><span class="n mono" style="color:var(--fraud)">{{ '{:,}'.format(totals.blocked) }}</span>
+    <div class="k">blocked as invalid</div></div>
+  <div class="stat"><span class="n mono" style="color:var(--watch)">{{ totals.escalated }}</span>
+    <div class="k">caught only by the novelty head</div></div>
+  <div class="stat"><span class="n mono" style="color:var(--clean)">₹{{ '{:,.2f}'.format(totals.budget) }}</span>
+    <div class="k">budget held back</div></div>
+</div>
+<div class="panel">
+  <h2>Recent scans</h2>
+  {% if scans %}
+  <div class="scroller"><table>
+    <thead><tr><th class="n">#</th><th>Source</th><th class="n">Clicks</th>
+      <th class="n">Blocked</th><th class="n">Held back</th><th>When</th><th></th></tr></thead>
+    <tbody>{% for s in scans %}
+      <tr><td class="n">{{ s['id'] }}</td><td>{{ s['label'] }}</td>
+        <td class="n">{{ s['n_clicks'] }}</td><td class="n">{{ s['n_blocked'] }}</td>
+        <td class="n">₹{{ '{:,.2f}'.format(s['budget_held']) }}</td>
+        <td class="mono small">{{ s['created_at'][:16].replace('T',' ') }}</td>
+        <td><a href="{{ url_for('scan_detail', scan_id=s['id']) }}">Open</a></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}
+  <p class="note">Nothing scanned yet. <a href="{{ url_for('scan') }}">Run the first scan</a>
+    — generating a sample takes one click.</p>
+  {% endif %}
+</div>
+{% endblock %}
