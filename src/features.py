@@ -154,6 +154,10 @@ class Preprocessor:
         self.feature_set = feature_set
         self.encoders, self.means, self.scaler = {}, {}, StandardScaler()
         self.feature_names_, self.label_encoder_ = None, LabelEncoder()
+        #: columns the most recent transform() had to impute because the caller
+        #: never supplied them. Downstream code uses this to avoid explaining a
+        #: decision with a signal it never actually observed.
+        self.last_imputed_ = []
 
     def _feature_frame(self, df):
         drop = set([LABEL_COL, TIME_COL] + ENTITY_COLS + ["block", "bot_family", "bot_generation"])
@@ -188,9 +192,19 @@ class Preprocessor:
 
     def transform(self, df):
         X = self._feature_frame(df).copy()
-        for c in self.feature_names_:
-            if c not in X.columns:
-                X[c] = 0
+        # A caller may hand us a record that simply does not carry every column
+        # -- a single click typed into a form has no entity graph behind it, so
+        # none of the EVGF aggregates exist. Filling those with zero would be
+        # wrong twice over: zero is a *meaningful* value for a velocity counter,
+        # and after scaling it lands several standard deviations from anything
+        # in training, which drags the novelty head into escalating every such
+        # record. Marking them missing lets the ordinary imputation below put
+        # them at the training mean, which is the honest answer to "we do not
+        # know what this click's neighbourhood looked like".
+        self.last_imputed_ = [c for c in self.feature_names_ if c not in X.columns]
+        for c in self.last_imputed_:
+            X[c] = (self.encoders[c].classes_[0] if c in self.encoders
+                    else np.nan)
         X = X[self.feature_names_]
         for c in X.columns:
             if c in self.encoders:

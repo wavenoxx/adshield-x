@@ -209,7 +209,7 @@ evidence.
 |---|---|
 | `/` · `/register` · `/signout` | account handling |
 | `/dashboard` | running totals and the last eight scans |
-| `/scan` | three ways in: upload a CSV, generate a labelled sample, or type one click into a form |
+| `/scan` | three ways in: upload a CSV, draw a labelled sample from the held-out pool, or type one click into a form |
 | `/scan/<id>` | stored verdicts with reason codes, escalations highlighted |
 | `/scan/<id>.csv` | the same scan as a downloadable report |
 | `/history` | every scan this account has run |
@@ -232,6 +232,24 @@ curl -X POST https://adshield-x.onrender.com/api/v1/score \
 
 Missing columns are imputed from the training means, so a partial click record
 still scores. Uploads are capped at 16 MB and API batches at 2,000 clicks.
+
+**On samples.** "Generate a sample" draws from `outputs/sample_pool.csv`, a
+held-out stream produced with the training parameters and never fitted on. It
+does not synthesise twenty-five clicks on the spot, and the reason is the graph
+layer: those features count what an address or publisher did in the hour before
+each click, so they only carry meaning when computed over a whole stream.
+Recomputed over twenty-five isolated clicks they come out at zero, and a batch
+of zeros looks nothing like training — the model then treats the entire sample
+as anomalous. Sampling a real stream avoids that. For the same reason
+`score_frame` computes the graph layer only when a log does not already carry
+it.
+
+**On a click typed by hand.** A single form entry has no entity graph behind it
+at all. Those columns are marked missing and imputed at the training mean —
+"we do not know what this click's neighbourhood looked like" — rather than set
+to zero, which would be a claim that the address had no history. Imputed
+features are also excluded from the reason codes, because a decision must not be
+explained with a signal nobody measured.
 
 **On explanations.** SHAP over a 300-tree forest costs about 80 ms per click on
 a dedicated core and several times that on a shared one, so explaining a whole

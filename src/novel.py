@@ -359,11 +359,18 @@ class ReasonCodeExplainer:
             v = v[..., -1]
         return v
 
-    def reasons(self, X, k=4):
+    def reasons(self, X, k=4, ignore=None):
+        """ignore: feature names whose values were imputed rather than observed.
+        A decision must not be explained with a signal nobody measured, so those
+        contributions are dropped before the top-k are chosen."""
         v = self.shap_values(X)
+        drop = {self.names.index(n) for n in (ignore or []) if n in self.names}
         out = []
         for i in range(len(X)):
-            order = np.argsort(-np.abs(v[i]))[:k]
+            w = np.abs(v[i]).copy()
+            for j in drop:
+                w[j] = -1.0
+            order = [j for j in np.argsort(-w) if w[j] >= 0][:k]
             items = []
             for j in order:
                 n = self.names[j]
