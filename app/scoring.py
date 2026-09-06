@@ -203,6 +203,23 @@ MANUAL_CATEGORICAL = [
 ]
 
 
+def used_fields():
+    """Which of the form's fields survive into the model.
+
+    RFE keeps 18 of 35 columns, and eight of those are entity-graph aggregates
+    the form cannot supply. Ten form fields therefore reach the classifier and
+    the rest are inert. Saying so in the interface turns a confusing dead
+    control into the visible result of feature selection: RFE drops a column
+    when a surviving one already carries its information -- browser overlaps
+    with user-agent entropy, device with touch events, scroll depth with
+    session length.
+    """
+    try:
+        return set(bundle()["feature_names"])
+    except ModelMissing:
+        return set()
+
+
 def manual_defaults():
     d = {k: v for k, _, v in MANUAL_FIELDS}
     d.update({k: v for k, _, _, v in MANUAL_CATEGORICAL})

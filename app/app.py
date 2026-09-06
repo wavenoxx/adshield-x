@@ -169,7 +169,8 @@ def create_app():
         return render_template("scan.html", error=error,
                                fields=scoring.MANUAL_FIELDS,
                                cats=scoring.MANUAL_CATEGORICAL,
-                               defaults=scoring.manual_defaults())
+                               defaults=scoring.manual_defaults(),
+                               used=scoring.used_fields())
 
     @app.route("/scan/<int:scan_id>")
     @login_required

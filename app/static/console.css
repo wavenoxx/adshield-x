@@ -67,3 +67,15 @@ table.kv th{background:none;width:200px}
 pre.code{background:var(--soft);border:1px solid var(--rule);border-radius:2px;
  padding:14px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;
  overflow-x:auto;line-height:1.55;margin:0 0 14px}
+
+.unused,.unused-key{font-size:11px;color:var(--muted);background:var(--soft);
+ border:1px solid var(--rule);border-radius:2px;padding:1px 6px;margin-left:7px;
+ white-space:nowrap;vertical-align:middle}
+.unused-key{margin:0 2px}
+.field.inert label{color:#93A3AF}
+.field.inert input,.field.inert select{opacity:.62}
+
+/* a reason that pushed the score up reads as an accusation; one that pushed it
+   down must not, or a cleared click looks incriminated by its own evidence */
+.up{color:var(--fraud);font-weight:500}
+.down{color:var(--clean);font-weight:500}

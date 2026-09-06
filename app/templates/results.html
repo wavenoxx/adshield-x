@@ -38,8 +38,11 @@
         <td><span class="tag {{ 'f' if r.blocked else 'c' }}">{{ 'Invalid click' if r.blocked else 'Legitimate' }}</span>
           {% if r.escalated %}<span class="why">escalated by the novelty head</span>{% endif %}</td>
         {% if r.truth %}<td>{{ r.truth }}</td>{% endif %}
-        <td>{% if r.reasons %}{% for x in r.reasons[:3] %}{{ x.signal }}<span class="why">{{ x.explanation }}</span>{% endfor %}
-          {% else %}<span class="why">low risk, not explained</span>{% endif %}</td>
+        <td>{% if r.reasons %}{% for x in r.reasons[:3] %}
+            <span class="{{ 'up' if x.contribution > 0 else 'down' }}">{{ x.signal }}</span>
+            <span class="why">{{ x.explanation if x.contribution > 0
+                                 else 'looks like a real visitor on this signal' }}</span>
+          {% endfor %}{% else %}<span class="why">low risk, not explained</span>{% endif %}</td>
       </tr>
     {% endfor %}</tbody></table></div>
 </div>

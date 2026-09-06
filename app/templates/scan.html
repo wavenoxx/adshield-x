@@ -30,15 +30,20 @@
   <h2>Score one click by hand</h2>
   <p class="note">The defaults describe an ordinary desktop visitor. Change a few
     values — drop the pointer moves to zero, push the clicks-from-this-IP up —
-    and watch the verdict move.</p>
+    and watch the verdict move. Fields marked <span class="unused-key">not
+    used</span> were dropped by feature selection because a surviving column
+    already carries the same information; changing them will not move the
+    score.</p>
   <form method="post">
     <div class="formgrid">
       {% for key, label, default in fields %}
-      <div class="field"><label for="f_{{ key }}">{{ label }}</label>
+      <div class="field{{ ' inert' if key not in used else '' }}">
+        <label for="f_{{ key }}">{{ label }}{% if key not in used %}<span class="unused">not used</span>{% endif %}</label>
         <input id="f_{{ key }}" name="{{ key }}" value="{{ defaults[key] }}"></div>
       {% endfor %}
       {% for key, label, options, default in cats %}
-      <div class="field"><label for="c_{{ key }}">{{ label }}</label>
+      <div class="field{{ ' inert' if key not in used else '' }}">
+        <label for="c_{{ key }}">{{ label }}{% if key not in used %}<span class="unused">not used</span>{% endif %}</label>
         <select id="c_{{ key }}" name="{{ key }}">
           {% for o in options %}<option value="{{ o }}" {% if o == defaults[key] %}selected{% endif %}>{{ o }}</option>{% endfor %}
         </select></div>
