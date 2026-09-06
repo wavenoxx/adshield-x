@@ -160,11 +160,11 @@ def sample_frame(n=25, seed=None):
     if _POOL is None:
         if not os.path.exists(SAMPLE_POOL):
             raise ModelMissing(
-                "outputs/sample_pool.csv not found. Rebuild it with: "
-                "python -c \"import sys;sys.path.insert(0,'src');import data as D;"
-                "from features import add_entity_velocity_features as f;"
-                "f(D.generate_clickstream(n=24000,seed=20260906)).sample(8000,"
-                "random_state=1).to_csv('outputs/sample_pool.csv',index=False)\"")
+                "outputs/sample_pool.csv is missing, so there is no held-out "
+                "stream to sample from. Uploading a click log and scoring a "
+                "single click both still work. If this is a container, check "
+                "that the image copies outputs/sample_pool.csv; locally, "
+                "rebuild it with: python scripts/build_sample_pool.py")
         _POOL = pd.read_csv(SAMPLE_POOL)
     rs = np.random.randint(1 << 30) if seed is None else int(seed)
     return _POOL.sample(n=n, random_state=rs).reset_index(drop=True)

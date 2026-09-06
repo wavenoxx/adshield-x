@@ -241,7 +241,9 @@ Missing columns are imputed from the training means, so a partial click record
 still scores. Uploads are capped at 16 MB and API batches at 2,000 clicks.
 
 **On samples.** "Generate a sample" draws from `outputs/sample_pool.csv`, a
-held-out stream produced with the training parameters and never fitted on. It
+held-out stream produced with the training parameters and never fitted on.
+Rebuild it any time with `python scripts/build_sample_pool.py`, and note that a
+container image has to copy it explicitly — the `Dockerfile` here does. It
 does not synthesise twenty-five clicks on the spot, and the reason is the graph
 layer: those features count what an address or publisher did in the hour before
 each click, so they only carry meaning when computed over a whole stream.

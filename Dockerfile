@@ -17,7 +17,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 COPY app/ ./app/
 COPY docs/ ./docs/
+# The console needs two artefacts at runtime: the trained bundle, and the
+# held-out stream that "generate a sample" draws from. Everything else under
+# outputs/ is paper material and stays out of the image.
 COPY outputs/adshield_model.joblib ./outputs/adshield_model.joblib
+COPY outputs/sample_pool.csv       ./outputs/sample_pool.csv
 
 # The database lives on the container filesystem, which most free hosts wipe on
 # redeploy. Point ADSHIELD_DB at a mounted volume if history must survive.
