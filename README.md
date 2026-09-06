@@ -146,6 +146,11 @@ Set `ADSHIELD_SECRET` to a random string in the host's environment settings.
 Without it a fresh key is generated per process, which logs everyone out on
 every restart.
 
+Measured on one core, the console peaks at about 365 MB resident and answers a
+500-click scan in roughly 5 s, so it fits a 512 MB free instance. Shared-CPU
+tiers are slower; lower `ADSHIELD_REASON_LIMIT` if a scan ever approaches the
+gunicorn timeout.
+
 One caveat worth knowing before a demo: free tiers give you an ephemeral
 filesystem, so `outputs/adshield.db` is wiped on redeploy and scan history
 resets. That is fine for a demonstration. Mount a volume and point
@@ -205,7 +210,15 @@ curl -X POST http://127.0.0.1:5000/api/v1/score \
 ```
 
 Missing columns are imputed from the training means, so a partial click record
-still scores. Uploads are capped at 16 MB and API batches at 5,000 clicks.
+still scores. Uploads are capped at 16 MB and API batches at 2,000 clicks.
+
+**On explanations.** SHAP over a 300-tree forest costs about 80 ms per click on
+a dedicated core and several times that on a shared one, so explaining a whole
+batch would blow any sensible request budget. The console ranks each batch by
+how much the decision needs defending — escalated first, then blocked, then
+whatever else is riskiest — and explains the top `ADSHIELD_REASON_LIMIT` clicks,
+60 by default. The clean tail is scored but not explained, which is also the
+right operational answer: you justify what you block.
 
 **What is deliberately not here.** No password reset, no rate limiting, no TLS
 termination, no multi-tenant isolation beyond per-user scan ownership. This is a

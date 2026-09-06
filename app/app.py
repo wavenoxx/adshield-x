@@ -261,8 +261,8 @@ def create_app():
         rows = payload.get("clicks")
         if not isinstance(rows, list) or not rows:
             return jsonify({"error": "send a non-empty 'clicks' array"}), 400
-        if len(rows) > 5000:
-            return jsonify({"error": "send at most 5000 clicks per request"}), 400
+        if len(rows) > 2000:
+            return jsonify({"error": "send at most 2000 clicks per request"}), 400
         try:
             recs, summary = scoring.score_frame(pd.DataFrame(rows))
         except ModelMissing as e:

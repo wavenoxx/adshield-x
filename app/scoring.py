@@ -23,6 +23,13 @@ from novel import ReasonCodeExplainer                # noqa: E402
 MODEL_PATH = os.path.join(ROOT, "outputs", "adshield_model.joblib")
 CPC = float(os.environ.get("ADSHIELD_CPC", 18.0))
 
+#: SHAP on a 300-tree forest costs roughly 80 ms per click on a dedicated core
+#: and several times that on a shared one, so explaining a whole batch would
+#: blow any sensible request budget. We explain the clicks an analyst actually
+#: has to justify -- the escalated ones, then the blocked ones, then whatever
+#: else is riskiest -- and leave the obviously-clean tail unexplained.
+REASON_LIMIT = int(os.environ.get("ADSHIELD_REASON_LIMIT", 60))
+
 _B = None
 
 
@@ -54,6 +61,7 @@ def model_card():
         "novelty_head": "denoising autoencoder on legitimate clicks"
                         if b.get("cascade") else "not loaded",
         "cpc": CPC,
+        "reason_limit": REASON_LIMIT,
     }
 
 
@@ -78,7 +86,14 @@ def score_frame(df: pd.DataFrame):
     final = np.where(escalated, np.maximum(proba, 0.55), proba)
     blocked = final >= thr
 
-    reasons = b["explainer"].reasons(X, k=4)
+    # rank by how much the decision needs defending, then explain the top slice
+    priority = np.lexsort((-final, ~blocked, ~escalated))
+    explain_idx = priority[:min(REASON_LIMIT, len(X))]
+    reasons = {}
+    if len(explain_idx):
+        computed = b["explainer"].reasons(X[explain_idx], k=4)
+        reasons = {int(j): r for j, r in zip(explain_idx, computed)}
+
     has_truth = D.LABEL_COL in df.columns
     recs = []
     for i in range(len(X)):
@@ -90,7 +105,7 @@ def score_frame(df: pd.DataFrame):
             "blocked": bool(blocked[i]),
             "verdict": "Invalid click" if blocked[i] else "Legitimate",
             "truth": str(df[D.LABEL_COL].iloc[i]) if has_truth else None,
-            "reasons": reasons[i],
+            "reasons": reasons.get(i, []),
         })
 
     correct = None
@@ -107,13 +122,14 @@ def score_frame(df: pd.DataFrame):
         "budget_held": round(float(blocked.sum()) * CPC, 2),
         "cpc": CPC,
         "correct": correct,
+        "explained": int(len(explain_idx)),
     }
     return recs, summary
 
 
 def sample_frame(n=25, seed=None):
     return D.generate_clickstream(
-        n=max(5, min(int(n), 1000)),
+        n=max(5, min(int(n), 500)),
         seed=int(np.random.randint(1 << 30)) if seed is None else int(seed))
 
 
